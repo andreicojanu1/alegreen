@@ -1,6 +1,9 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, Trash2 } from 'lucide-react';
 import { AdjustmentLog } from './AdjustmentLog';
+import { RejectRunForm } from './RejectRunForm';
+import { useConfirm } from '../ui/ConfirmDialog';
+import { LastRejection } from './LastRejection';
 import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useActions, useStore } from '../../data/store';
@@ -13,8 +16,9 @@ import { fmtDateTime } from '../../lib/format';
  */
 export function FinalizationCard({ run, finalizabil, ready = true }: { run: AllocationRun; finalizabil: boolean; ready?: boolean }) {
   const { state } = useStore();
-  const { approveRun, deleteDraft } = useActions();
+  const { approveRun, rejectRun, deleteDraft } = useActions();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const name = (id?: string) => state.admins.find((a) => a.id === id)?.nume ?? '—';
   const me = state.role.tip === 'admin' ? state.role.adminId : undefined;
   const previous = state.runs.find((r) => r.anObligatie === run.anObligatie && r.status === 'finalizata' && r.id !== run.id);
@@ -24,6 +28,7 @@ export function FinalizationCard({ run, finalizabil, ready = true }: { run: Allo
     case 'draft':
       body = (
         <>
+          <LastRejection run={run} />
           <p className="text-sm text-gray-700">
             Calculul automat este gata. Rularea este în draft și nu este vizibilă nimănui în afara administratorilor. Pasul
             următor: verificați datele, faceți eventualele ajustări manuale și confirmați alocarea pentru aprobare.
@@ -49,8 +54,8 @@ export function FinalizationCard({ run, finalizabil, ready = true }: { run: Allo
               variant="secondary"
               icon={<Trash2 size={16} />}
               className="ml-auto"
-              onClick={() => {
-                if (confirm('Ștergeți draftul? Acțiunea nu poate fi anulată.')) {
+              onClick={async () => {
+                if (await confirm({ title: 'Ștergeți draftul?', message: 'Acțiunea nu poate fi anulată.', confirmLabel: 'Șterge draftul', danger: true })) {
                   deleteDraft(run.id);
                   navigate('/admin/alocari');
                 }
@@ -88,19 +93,24 @@ export function FinalizationCard({ run, finalizabil, ready = true }: { run: Allo
               dreapta jos) pentru a o aproba.
             </p>
           ) : (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-start gap-2">
               <Button
                 icon={<CheckCircle2 size={16} />}
                 disabled={!finalizabil}
-                onClick={() => {
-                  const msg = previous
-                    ? `Rularea finalizată din ${fmtDateTime(previous.finalizatLa!)} va fi marcată „înlocuită". Continuați?`
-                    : 'Aprobați și finalizați rularea? După finalizare devine imutabilă.';
-                  if (confirm(msg)) approveRun(run.id);
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: previous ? 'Aprobați și înlocuiți alocarea?' : 'Aprobați și finalizați rularea?',
+                    message: previous
+                      ? `Rularea finalizată din ${fmtDateTime(previous.finalizatLa!)} va fi marcată „înlocuită". Noua rulare devine imutabilă.`
+                      : 'După finalizare, rularea devine imutabilă.',
+                    confirmLabel: 'Aprobă',
+                  });
+                  if (ok) approveRun(run.id);
                 }}
               >
                 {label}
               </Button>
+              <RejectRunForm onReject={(motiv) => rejectRun(run.id, motiv)} />
             </div>
           )}
         </>

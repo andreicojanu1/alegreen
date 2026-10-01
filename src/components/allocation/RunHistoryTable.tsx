@@ -50,6 +50,11 @@ export function RunHistoryTable() {
                   <td className="px-4 py-3 text-right tabular">{fmtPct(res.totaluri.procentIndeplinire)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <RunStatusBadge status={r.status} />
+                    {r.status === 'draft' && (r.respingeri?.length ?? 0) > 0 && (
+                      <Link to={`/admin/alocari/${r.id}/revizuire`} className="ml-2 text-xs text-red-700 hover:underline">
+                        respinsă · de revizuit
+                      </Link>
+                    )}
                     {r.status === 'in_aprobare' && (
                       <Link to={`/admin/alocari/${r.id}`} className="ml-2 text-xs text-blue-700 hover:underline">
                         așteaptă aprobarea

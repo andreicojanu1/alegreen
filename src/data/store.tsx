@@ -60,6 +60,7 @@ type Action =
   | { type: 'undoAdjustment'; runId: string }
   | { type: 'clearAdjustments'; runId: string }
   | { type: 'approveRun'; id: string; now: string }
+  | { type: 'rejectRun'; id: string; now: string; motiv: string }
   | { type: 'deleteDraft'; id: string }
   | { type: 'setVisibility'; value: boolean }
   | { type: 'setCollected'; an: number; luna: number; categorie: string; cantitateKg: string }
@@ -187,6 +188,23 @@ function reducer(state: AppState, action: Action): AppState {
         }),
       };
     }
+    case 'rejectRun': {
+      if (state.role.tip !== 'admin') return state;
+      const by = state.role.adminId;
+      return {
+        ...state,
+        runs: state.runs.map((r) =>
+          r.id === action.id && r.status === 'in_aprobare' && r.creatDe !== by && action.motiv.trim()
+            ? {
+                ...r,
+                status: 'draft',
+                trimisSpreAprobareLa: undefined,
+                respingeri: [...(r.respingeri ?? []), { deAdminId: by, la: action.now, motiv: action.motiv.trim() }],
+              }
+            : r,
+        ),
+      };
+    }
     case 'deleteDraft':
       return { ...state, runs: state.runs.filter((r) => !(r.id === action.id && r.status === 'draft')) };
     case 'setVisibility':
@@ -257,6 +275,7 @@ export function useActions() {
       undoAdjustment: (runId: string) => dispatch({ type: 'undoAdjustment', runId }),
       clearAdjustments: (runId: string) => dispatch({ type: 'clearAdjustments', runId }),
       approveRun: (id: string) => dispatch({ type: 'approveRun', id, now: new Date().toISOString() }),
+      rejectRun: (id: string, motiv: string) => dispatch({ type: 'rejectRun', id, motiv, now: new Date().toISOString() }),
       deleteDraft: (id: string) => dispatch({ type: 'deleteDraft', id }),
       setVisibility: (value: boolean) => dispatch({ type: 'setVisibility', value }),
       setCollected: (an: number, luna: number, categorie: string, cantitateKg: string) =>

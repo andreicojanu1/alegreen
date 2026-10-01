@@ -1,12 +1,14 @@
 import { useNavigate } from 'react-router-dom';
 import { RotateCcw, UserCog } from 'lucide-react';
 import { useActions, useStore } from '../../data/store';
+import { useConfirm } from '../ui/ConfirmDialog';
 
 /** Comutator de perspectivă, doar pentru prototip: admin (două conturi, pentru fluxul de aprobare) sau client. */
 export function RoleSwitcher() {
   const { state } = useStore();
   const { setRole, reset } = useActions();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const value = state.role.tip === 'admin' ? `admin:${state.role.adminId}` : `client:${state.role.clientId}`;
   const clients = [...state.clients].sort((a, b) => a.denumire.localeCompare(b.denumire, 'ro'));
 
@@ -47,8 +49,9 @@ export function RoleSwitcher() {
       <button
         type="button"
         title="Resetează datele demo"
-        onClick={() => {
-          if (confirm('Resetezi datele demo? Rulările create în prototip se pierd.')) reset();
+        onClick={async () => {
+          if (await confirm({ title: 'Resetezi datele demo?', message: 'Rulările, ajustările și regulile modificate în prototip se pierd.', confirmLabel: 'Resetează', danger: true }))
+            reset();
         }}
         className="flex h-7 w-7 items-center justify-center rounded-full text-gray-400 hover:bg-gray-700 hover:text-white"
       >

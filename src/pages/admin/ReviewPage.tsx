@@ -11,6 +11,8 @@ import { RunStepper, stepOf } from '../../components/allocation/RunStepper';
 import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
 import { ReallocationPanel } from '../../components/allocation/ReallocationPanel';
 import { ReviewClientTable } from '../../components/allocation/ReviewClientTable';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
+import { LastRejection } from '../../components/allocation/LastRejection';
 import { AdjustmentLog } from '../../components/allocation/AdjustmentLog';
 import { WarningsPanel } from '../../components/allocation/WarningsPanel';
 import { fmtKg, fmtNum, fmtPct } from '../../lib/format';
@@ -26,6 +28,7 @@ export function ReviewPage() {
   const { state } = useStore();
   const { addAdjustments, undoAdjustment, clearAdjustments, submitRun } = useActions();
   const navigate = useNavigate();
+  const confirm = useConfirm();
   const [motiv, setMotiv] = useState('');
   const run = state.runs.find((r) => r.id === runId);
   const me = state.role.tip === 'admin' ? state.role.adminId : '';
@@ -67,6 +70,7 @@ export function ReviewPage() {
         <RunStepper current={stepOf(run.status, true)} inlocuita={run.status === 'inlocuita'} />
       </header>
 
+      <LastRejection run={run} />
       {!editable && (
         <p className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
           Rularea a fost deja trimisă spre aprobare — revizuirea este închisă și afișată doar pentru consultare.
@@ -106,7 +110,10 @@ export function ReviewPage() {
                   variant="secondary"
                   icon={<RotateCcw size={15} />}
                   disabled={!nAdj}
-                  onClick={() => confirm('Renunțați la toate ajustările manuale?') && clearAdjustments(run.id)}
+                  onClick={async () =>
+                    (await confirm({ title: 'Reveniți la calculul automat?', message: 'Toate ajustările manuale ale acestei rulări vor fi anulate.', confirmLabel: 'Anulează ajustările', danger: true })) &&
+                    clearAdjustments(run.id)
+                  }
                 >
                   Revino la calculul automat
                 </Button>

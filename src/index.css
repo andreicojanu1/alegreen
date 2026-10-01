@@ -1,9 +1,14 @@
 @import 'tailwindcss';
-@import '@fontsource/noto-sans/400.css';
-@import '@fontsource/noto-sans/500.css';
-@import '@fontsource/noto-sans/600.css';
-@import '@fontsource/noto-sans/700.css';
-@import '@fontsource/dancing-script/700.css';
+/* doar subseturile latin + latin-ext (diacriticele românești ș, ț sunt în latin-ext) */
+@import '@fontsource/noto-sans/latin-400.css';
+@import '@fontsource/noto-sans/latin-ext-400.css';
+@import '@fontsource/noto-sans/latin-500.css';
+@import '@fontsource/noto-sans/latin-ext-500.css';
+@import '@fontsource/noto-sans/latin-600.css';
+@import '@fontsource/noto-sans/latin-ext-600.css';
+@import '@fontsource/noto-sans/latin-700.css';
+@import '@fontsource/noto-sans/latin-ext-700.css';
+@import '@fontsource/dancing-script/latin-700.css';
 
 @theme {
   --font-sans: 'Noto Sans', ui-sans-serif, system-ui, sans-serif;
@@ -23,6 +28,9 @@ html,
 body,
 #root {
   height: 100%;
+}
+:root {
+  color-scheme: light;
 }
 body {
   @apply bg-page text-gray-900 antialiased;

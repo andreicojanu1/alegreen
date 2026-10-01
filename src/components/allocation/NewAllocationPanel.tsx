@@ -6,6 +6,7 @@ import { Label, Select } from '../ui/Field';
 import { CategoryRulesTable } from './CategoryRulesTable';
 import { PeriodPicker, periodInvalid } from './PeriodPicker';
 import { useActions, useStore } from '../../data/store';
+import { useConfirm } from '../ui/ConfirmDialog';
 import type { RunParams } from '../../data/preview';
 import type { CalculationBase } from '../../data/types';
 import { fmtDateTime } from '../../lib/format';
@@ -33,6 +34,7 @@ export function NewAllocationPanel({
 }) {
   const { state } = useStore();
   const { deleteDraft } = useActions();
+  const confirm = useConfirm();
   const [p, setP] = useState<RunParams>(initial);
   // O rulare = o sesiune unică: cel mult o sesiune deschisă (draft sau în aprobare) pe an de obligație.
   const openSession = state.runs.find((r) => r.anObligatie === p.anObligatie && (r.status === 'draft' || r.status === 'in_aprobare'));
@@ -98,7 +100,10 @@ export function NewAllocationPanel({
             {openSession.status === 'draft' && (
               <Button
                 variant="secondary"
-                onClick={() => confirm('Ștergeți draftul existent (inclusiv ajustările lui) și porniți o sesiune nouă?') && deleteDraft(openSession.id)}
+                onClick={async () =>
+                  (await confirm({ title: 'Renunțați la sesiunea existentă?', message: 'Draftul existent, inclusiv ajustările lui, va fi șters.', confirmLabel: 'Șterge draftul', danger: true })) &&
+                  deleteDraft(openSession.id)
+                }
               >
                 Renunță la ea
               </Button>

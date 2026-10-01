@@ -1,4 +1,6 @@
-import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
+import { IS_ARTIFACT } from './lib/env';
+import { ConfirmProvider } from './components/ui/ConfirmDialog';
 import { StoreProvider, useStore } from './data/store';
 import { AppLayout } from './components/layout/AppLayout';
 import { AllocationsPage } from './pages/admin/AllocationsPage';
@@ -37,10 +39,14 @@ function Home() {
   return <Navigate to={state.role.tip === 'admin' ? '/admin/alocari' : '/client/alocari'} replace />;
 }
 
+// În link-ul de test (cadru restricționat) navigarea rămâne în memorie; local, URL-uri reale ca în platformă.
+const Router = IS_ARTIFACT ? MemoryRouter : BrowserRouter;
+
 export default function App() {
   return (
     <StoreProvider>
-      <BrowserRouter>
+      <ConfirmProvider>
+      <Router>
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<Home />} />
@@ -62,7 +68,8 @@ export default function App() {
             <Route path="*" element={<Home />} />
           </Route>
         </Routes>
-      </BrowserRouter>
+      </Router>
+      </ConfirmProvider>
     </StoreProvider>
   );
 }

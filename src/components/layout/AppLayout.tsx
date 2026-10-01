@@ -4,7 +4,7 @@ import { Sidebar } from './Sidebar';
 import { RoleSwitcher } from './RoleSwitcher';
 
 export function AppLayout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => typeof window !== 'undefined' && window.innerWidth < 900);
   return (
     <div className="min-h-full">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />

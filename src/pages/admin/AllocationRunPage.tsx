@@ -9,6 +9,7 @@ import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
 import { fmtDateLong } from '../../lib/format';
 import { baseLabel, periodLabel, rateLabel } from '../../lib/runLabels';
 import { exportRunExcel } from '../../lib/exportRun';
+import { IS_ARTIFACT } from '../../lib/env';
 
 export function AllocationRunPage() {
   const { runId } = useParams();
@@ -50,7 +51,7 @@ export function AllocationRunPage() {
             {run.observatii && <> · {run.observatii}</>}
           </p>
         </div>
-        <div className="no-print flex gap-2">
+        <div className={`no-print flex gap-2 ${IS_ARTIFACT ? 'hidden' : ''}`}>
           <Button variant="secondary" icon={<FileText size={16} />} onClick={() => exportRunExcel(run, res, names, run.snapshot.clienti)}>
             Export Excel
           </Button>

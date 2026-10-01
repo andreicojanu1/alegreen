@@ -12,6 +12,8 @@ npm test           # testele golden ale motorului (Vitest)
 npm run seed       # regenerează src/data/seed/excelData.ts din docs/raport_alocare_2167.xlsx (python3 + openpyxl)
 ```
 
+Pentru un link de test (build cu navigare în memorie, fără export/print): `npm run build:artifact` → `dist-artifact/`.
+
 Comutatorul **„Prototip · perspectivă"** (dreapta jos) schimbă rolul: doi admini (Andrei C, Ion Popescu, pentru fluxul de
 aprobare de către alt admin) sau oricare dintre clienți. Butonul ↺ de lângă el resetează datele demo. Starea se păstrează în `localStorage`.
 

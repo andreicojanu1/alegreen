@@ -11,6 +11,7 @@ import { ProgressBar } from '../../components/client/ProgressBar';
 import { monthKey } from '../../engine/months';
 import { LUNI, fmtDate, fmtKg, fmtPct } from '../../lib/format';
 import { periodLabel } from '../../lib/runLabels';
+import { IS_ARTIFACT } from '../../lib/env';
 
 const ZERO = new Decimal(0);
 const sum = (xs: Decimal[]) => xs.reduce((a, b) => a.plus(b), ZERO);
@@ -65,7 +66,7 @@ export function ClientAllocationsPage() {
               <option key={y}>{y}</option>
             ))}
           </Select>
-          {data && data.rows.length > 0 && (
+          {data && data.rows.length > 0 && !IS_ARTIFACT && (
             <Button icon={<Download size={16} />} onClick={() => window.print()}>
               Situație alocare DEEE
             </Button>

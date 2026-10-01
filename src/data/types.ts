@@ -93,6 +93,8 @@ export interface AllocationRun {
   /** Motivul ajustărilor, obligatoriu dacă există ajustări (DAT-08). */
   motivAjustari?: string;
   revizuitDe?: string;
+  /** Respingerile aprobatorului (motiv obligatoriu); rularea revine în draft, la Revizuire. */
+  respingeri?: { deAdminId: string; la: string; motiv: string }[];
 }
 
 /** O ajustare manuală din ecranul de Revizuire (jurnal ordonat; vezi engine/adjustments.ts). */
