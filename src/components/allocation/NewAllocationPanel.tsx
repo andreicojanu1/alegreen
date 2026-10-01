@@ -4,12 +4,12 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Label, Select } from '../ui/Field';
 import { CategoryRulesTable } from './CategoryRulesTable';
-import { PeriodPicker, periodInvalid } from './PeriodPicker';
-import { useActions, useStore } from '../../data/store';
+import { PeriodPicker, lastCompleteMonth } from './PeriodPicker';
+import { nextDueMonth, useActions, useStore } from '../../data/store';
 import { useConfirm } from '../ui/ConfirmDialog';
 import type { RunParams } from '../../data/preview';
 import type { CalculationBase } from '../../data/types';
-import { fmtDateTime } from '../../lib/format';
+import { LUNI, fmtDateTime } from '../../lib/format';
 import { rateLabel, ratioToPctText } from '../../lib/runLabels';
 
 /**
@@ -35,7 +35,13 @@ export function NewAllocationPanel({
   const { state } = useStore();
   const { deleteDraft } = useActions();
   const confirm = useConfirm();
-  const [p, setP] = useState<RunParams>(initial);
+  const [p0, setP] = useState<RunParams>(initial);
+  // sesiunile merg strict în ordine: luna e următoarea după ultima sesiune aprobată a anului
+  const due = nextDueMonth(state.runs, p0.anObligatie);
+  const p: RunParams = { ...p0, luna: Math.min(due, 12) };
+  const last = lastCompleteMonth();
+  const yearDone = due > 12;
+  const notEnded = !yearDone && (p.anObligatie > last.an || (p.anObligatie === last.an && due > last.luna));
   // O rulare = o sesiune unică: cel mult o sesiune deschisă (draft sau în aprobare) pe an de obligație.
   const openSession = state.runs.find((r) => r.anObligatie === p.anObligatie && (r.status === 'draft' || r.status === 'in_aprobare'));
   const openAuthor = state.admins.find((a) => a.id === openSession?.creatDe)?.nume;
@@ -52,7 +58,16 @@ export function NewAllocationPanel({
       </div>
       <div className="space-y-6 px-6 py-5">
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
-          <PeriodPicker value={p} onChange={setP} />
+          <PeriodPicker
+            value={p}
+            onChange={setP}
+            lockMonth
+            monthHint={
+              yearDone
+                ? `Toate lunile din ${p.anObligatie} au fost alocate.`
+                : `Următoarea lună de alocat. Se alocă colectatul cumulat ianuarie–${LUNI[p.luna - 1].toLowerCase()}; lunile deja raportate rămân neschimbate.`
+            }
+          />
           <label className="block">
             <Label>Baza de calcul a obligației</Label>
             <Select value={p.baza} onChange={(e) => setP({ ...p, baza: e.target.value as CalculationBase })}>
@@ -86,6 +101,14 @@ export function NewAllocationPanel({
           <CategoryRulesTable reguli={rules.reguli} pragMinimImplicit={rules.pragMinimImplicit} readOnly />
         </div>
 
+        {(yearDone || notEnded) && !openSession && (
+          <p className="flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            <TriangleAlert size={16} className="text-gray-500" />
+            {yearDone
+              ? `Anul ${p.anObligatie} este complet alocat.`
+              : `${LUNI[due - 1]} ${p.anObligatie} se poate aloca după încheierea lunii (alocarea lunii M se face în luna M+1).`}
+          </p>
+        )}
         {openSession && (
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <TriangleAlert size={16} className="text-amber-600" />
@@ -114,8 +137,8 @@ export function NewAllocationPanel({
           <Button variant="secondary" onClick={onCancel}>
             Anulează
           </Button>
-          <Button icon={<Play size={16} />} disabled={periodInvalid(p) || !!openSession} onClick={() => onConfirm(p)}>
-            Pornește alocarea
+          <Button icon={<Play size={16} />} disabled={yearDone || notEnded || !!openSession} onClick={() => onConfirm(p)}>
+            Pornește alocarea pentru {LUNI[p.luna - 1].toLowerCase()}
           </Button>
         </div>
       </div>

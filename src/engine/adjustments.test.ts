@@ -9,7 +9,7 @@ import type { AllocationRun } from '../data/types';
 
 const run: AllocationRun = {
   id: 'a', anObligatie: 2026, deLa: { an: 2026, luna: 7 }, panaLa: { an: 2026, luna: 8 }, baza: 'declaratii_an_curent',
-  rataEfectiva: '0.2167', pragMinimImplicit: '0.3', observatii: '', status: 'draft', reguli: DEFAULT_CATEGORY_RULES,
+  rataEfectiva: '0.2167', pragMinimImplicit: '0.3', observatii: '', luna: 8, context: { raportatAnterior: [], ajustariAnterioare: [] }, status: 'draft', reguli: DEFAULT_CATEGORY_RULES,
   snapshot: { clienti: seedClients, declaratii: seedDeclarationLines, colectari: seedCollected }, creatDe: '', creatLa: '',
 };
 const base = allocate(buildEngineInput(run));

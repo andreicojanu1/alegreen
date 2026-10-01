@@ -27,7 +27,7 @@ export interface ManualAdjustment {
 }
 
 export interface ReviewCheck {
-  cod: 'R-1' | 'R-2' | 'R-3';
+  cod: 'R-1' | 'R-2' | 'R-3' | 'R-4';
   descriere: string;
   valoare: Decimal;
   trecut: boolean;

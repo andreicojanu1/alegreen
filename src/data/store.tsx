@@ -1,5 +1,8 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { DEFAULT_CATEGORY_RULES } from './categories';
+import { finalizedSessions, nextDueMonth, sessionContext, buildSeedRuns } from './sessions';
+export { finalizedSessions, nextDueMonth };
+import { runResult } from './useRunResult';
 import { seedClients, seedCollected, seedDeclarationLines } from './seed/excelData';
 import type {
   AdminUser,
@@ -43,8 +46,8 @@ export interface RulesConfig {
 
 export interface NewRunParams {
   anObligatie: number;
-  deLa: { an: number; luna: number };
-  panaLa: { an: number; luna: number };
+  /** luna alocată (1–12); colectarea e cumulată din ianuarie */
+  luna: number;
   baza: CalculationBase;
   rataEfectiva: string;
   pragMinimImplicit: string;
@@ -68,7 +71,7 @@ type Action =
   | { type: 'reset' };
 
 const STORAGE_KEY = 'alegreen-proto-state';
-const VERSION = 3;
+const VERSION = 4;
 
 export const ADMINS: AdminUser[] = [
   { id: 'adm_andrei', nume: 'Andrei C', email: 'admin@alegreen.ro' },
@@ -82,25 +85,7 @@ export function newId(): string {
 }
 
 function seedState(): AppState {
-  // Rularea oficială de la 1 septembrie 2026 (= fișierul Excel de referință), calculată de Andrei C și aprobată de Ion Popescu.
-  const finalRun: AllocationRun = {
-    id: 'cmseed0finalizata2026iulaug',
-    anObligatie: 2026,
-    deLa: { an: 2026, luna: 7 },
-    panaLa: { an: 2026, luna: 8 },
-    baza: 'declaratii_an_curent',
-    rataEfectiva: '0.2167',
-    pragMinimImplicit: '0.3',
-    observatii: 'Alocare iulie–august, după colectarea din august (= raport_alocare_2167.xlsx)',
-    status: 'finalizata',
-    reguli: DEFAULT_CATEGORY_RULES,
-    snapshot: { clienti: seedClients, declaratii: seedDeclarationLines, colectari: seedCollected },
-    creatDe: 'adm_andrei',
-    creatLa: '2026-09-01T08:15:00',
-    trimisSpreAprobareLa: '2026-09-01T08:40:00',
-    aprobatDe: 'adm_ion',
-    finalizatLa: '2026-09-01T11:02:00',
-  };
+  const runs = buildSeedRuns();
   return {
     version: VERSION,
     role: { tip: 'admin', adminId: 'adm_andrei' },
@@ -112,10 +97,10 @@ function seedState(): AppState {
       rataEfectiva: '0.2167',
       pragMinimImplicit: '0.3',
       reguli: DEFAULT_CATEGORY_RULES,
-      modificatLa: '2026-09-01T08:10:00',
+      modificatLa: '2026-01-15T08:10:00',
       modificatDe: 'adm_andrei',
     },
-    runs: [finalRun],
+    runs,
     clientVisibility: false,
   };
 }
@@ -127,9 +112,15 @@ function reducer(state: AppState, action: Action): AppState {
     case 'createRun': {
       if (state.role.tip !== 'admin') return state;
       const p = action.params;
+      // strict în ordine: doar următoarea lună de alocat, și o singură sesiune deschisă pe an
+      if (p.luna !== nextDueMonth(state.runs, p.anObligatie)) return state;
+      if (state.runs.some((r) => r.anObligatie === p.anObligatie && (r.status === 'draft' || r.status === 'in_aprobare'))) return state;
       const run: AllocationRun = {
         id: action.id,
         ...p,
+        deLa: { an: p.anObligatie, luna: 1 },
+        panaLa: { an: p.anObligatie, luna: p.luna },
+        context: sessionContext(state.runs, p.anObligatie, p.luna),
         status: 'draft',
         snapshot: { clienti: state.clients, declaratii: state.declarations, colectari: state.collected },
         creatDe: state.role.adminId,
@@ -177,15 +168,14 @@ function reducer(state: AppState, action: Action): AppState {
       const run = state.runs.find((r) => r.id === action.id);
       // O rulare devine finală doar după aprobarea unui alt admin decât cel care a calculat-o.
       if (!run || run.status !== 'in_aprobare' || run.creatDe === approver) return state;
-      const previous = state.runs.find((r) => r.anObligatie === run.anObligatie && r.status === 'finalizata');
+      const res = runResult(run);
+      if (!res.poateFiTrimisa) return state;
+      // la aprobare, valorile lunii se îngheață: devin rapoartele lunare ale clienților și baza lunii următoare
       return {
         ...state,
-        runs: state.runs.map((r) => {
-          if (r.id === run.id)
-            return { ...r, status: 'finalizata', aprobatDe: approver, finalizatLa: action.now, inlocuiesteRulareaId: previous?.id };
-          if (previous && r.id === previous.id) return { ...r, status: 'inlocuita', inlocuitaDeRulareaId: run.id };
-          return r;
-        }),
+        runs: state.runs.map((r) =>
+          r.id === run.id ? { ...r, status: 'finalizata', aprobatDe: approver, finalizatLa: action.now, raportLuna: res.raportLuna } : r,
+        ),
       };
     }
     case 'rejectRun': {

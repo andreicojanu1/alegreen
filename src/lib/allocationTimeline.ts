@@ -1,11 +1,12 @@
-import type { AllocationResult } from '../engine/types';
-import { monthKey } from '../engine/months';
+import type { MonthlyResult } from '../engine/monthly';
 
 /**
- * Cronologia animației „live" (M4), derivată din rezultatul FINAL al motorului — nu recalculează nimic.
- * Ordinea pașilor: lună cu lună; în fiecare lună, întâi colectatul propriu pe categorii (în ordinea pool-ului),
- * apoi partea din pool pe categorii, în ordinea configurată. Pașii cu cantitate zero sunt omiși.
- * Cantitățile sunt convertite în number DOAR pentru interpolarea vizuală; la final se afișează valorile exacte.
+ * Cronologia animației „live" a unei sesiuni lunare, derivată din rezultatul FINAL — nu recalculează nimic.
+ * Lunile deja raportate apar direct ca încheiate (valori înghețate). Luna curentă se derulează categorie cu categorie,
+ * în ordinea pool-ului: întâi partea acoperită din colectatul propriu, apoi partea din pool.
+ * Împărțirea lunii între „propriu" și „pool": partea proprie = creșterea colectatului propriu utilizat față de lunile
+ * anterioare (min(colectat propriu ian–M−1, obligație)), plafonată la totalul lunii; restul vine din pool.
+ * Cantitățile sunt number DOAR pentru interpolarea vizuală; la final se afișează valorile exacte.
  */
 export interface TimelineStep {
   monthKey: string;
@@ -14,18 +15,39 @@ export interface TimelineStep {
   kg: number;
 }
 
-export function buildTimeline(res: AllocationResult): TimelineStep[] {
+export interface Timeline {
+  steps: TimelineStep[];
+  lunaCurenta: string;
+  /** kg pe (categorie|lună) pentru lunile anterioare (înghețate) */
+  baseline: Map<string, number>;
+  luniCuAlocari: Set<string>;
+}
+
+export function buildTimeline(res: MonthlyResult): Timeline {
+  const M = res.lunaCurenta;
   const steps: TimelineStep[] = [];
-  for (const m of res.luni) {
-    const key = monthKey(m);
-    for (const faza of ['propriu', 'pool'] as const) {
-      for (const c of res.categorii) {
-        const v = faza === 'propriu' ? c.propriuLuna[key] : c.poolLuna[key];
-        if (v.greaterThan(0)) steps.push({ monthKey: key, cod: c.cod, faza, kg: v.toNumber() });
+  const baseline = new Map<string, number>();
+  const luniCuAlocari = new Set<string>();
+  const own: TimelineStep[] = [];
+  const pool: TimelineStep[] = [];
+  for (const c of res.categorii) {
+    for (const [k, v] of Object.entries(c.alocatLuna)) {
+      if (k < M) {
+        baseline.set(`${c.cod}|${k}`, v.toNumber());
+        if (v.greaterThan(0)) luniCuAlocari.add(k);
       }
     }
+    const monthTotal = c.alocatLuna[M]?.toNumber() ?? 0;
+    if (monthTotal <= 0) continue;
+    const colectatAnterior = Object.entries(c.colectatLuna).reduce((a, [k, v]) => (k < M ? a + v.toNumber() : a), 0);
+    const propriuAnterior = Math.min(colectatAnterior, c.obligatie.toNumber());
+    const ownPart = Math.min(monthTotal, Math.max(0, c.utilizatPropriu.toNumber() - propriuAnterior));
+    if (ownPart > 0) own.push({ monthKey: M, cod: c.cod, faza: 'propriu', kg: ownPart });
+    if (monthTotal - ownPart > 1e-9) pool.push({ monthKey: M, cod: c.cod, faza: 'pool', kg: monthTotal - ownPart });
   }
-  return steps;
+  steps.push(...own, ...pool);
+  if (steps.length) luniCuAlocari.add(M);
+  return { steps, lunaCurenta: M, baseline, luniCuAlocari };
 }
 
 export type MonthState = 'empty' | 'pending' | 'active' | 'done';
@@ -35,48 +57,47 @@ export interface PlaybackView {
   done: boolean;
   /** kg alocate până acum pentru (categorie, lună) */
   catMonth: (cod: string, key: string) => number;
-  /** kg alocate până acum pe categorie, pe fază (colectat propriu / din pool) */
+  /** kg alocate până acum în luna curentă, pe categorie și fază */
   catPhase: (cod: string, faza: 'propriu' | 'pool') => number;
+  /** kg din luna curentă încă nederulate, pe categorie și fază */
+  catPhaseRemaining: (cod: string, faza: 'propriu' | 'pool') => number;
   monthState: (key: string) => MonthState;
   current?: TimelineStep;
-  totalAlocat: number;
+  /** kg alocate până acum în luna curentă */
+  totalLuna: number;
 }
 
-export function viewAt(steps: TimelineStep[], t: number): PlaybackView {
+export function viewAt(tl: Timeline, t: number): PlaybackView {
+  const { steps } = tl;
   const done = t >= steps.length;
   const acc = new Map<string, number>();
   const phase = new Map<string, number>();
-  const monthsWithSteps = new Set(steps.map((s) => s.monthKey));
-  const lastIdxOfMonth = new Map<string, number>();
-  const firstIdxOfMonth = new Map<string, number>();
-  steps.forEach((s, i) => {
-    lastIdxOfMonth.set(s.monthKey, i);
-    if (!firstIdxOfMonth.has(s.monthKey)) firstIdxOfMonth.set(s.monthKey, i);
-  });
   let total = 0;
   const whole = Math.floor(t);
   for (let i = 0; i < steps.length && i <= whole; i++) {
     const frac = i < whole ? 1 : t - whole;
     if (frac <= 0) break;
     const s = steps[i];
-    const k = `${s.cod}|${s.monthKey}`;
     const v = s.kg * frac;
-    acc.set(k, (acc.get(k) ?? 0) + v);
+    acc.set(s.cod, (acc.get(s.cod) ?? 0) + v);
     phase.set(`${s.cod}|${s.faza}`, (phase.get(`${s.cod}|${s.faza}`) ?? 0) + v);
     total += v;
   }
-  const current = done ? undefined : steps[Math.min(whole, steps.length - 1)];
   return {
     done,
-    current,
-    totalAlocat: total,
-    catMonth: (cod, key) => acc.get(`${cod}|${key}`) ?? 0,
+    current: done ? undefined : steps[Math.min(whole, steps.length - 1)],
+    totalLuna: total,
+    catMonth: (cod, key) => (key === tl.lunaCurenta ? (acc.get(cod) ?? 0) : (tl.baseline.get(`${cod}|${key}`) ?? 0)),
     catPhase: (cod, faza) => phase.get(`${cod}|${faza}`) ?? 0,
+    catPhaseRemaining: (cod, faza) => {
+      const full = steps.filter((s) => s.cod === cod && s.faza === faza).reduce((a, s) => a + s.kg, 0);
+      return Math.max(0, full - (phase.get(`${cod}|${faza}`) ?? 0));
+    },
     monthState: (key) => {
-      if (!monthsWithSteps.has(key)) return 'empty';
-      if (done || t >= lastIdxOfMonth.get(key)! + 1) return 'done';
-      if (t >= firstIdxOfMonth.get(key)!) return 'active';
-      return 'pending';
+      if (key < tl.lunaCurenta) return tl.luniCuAlocari.has(key) ? 'done' : 'empty';
+      if (key > tl.lunaCurenta || !steps.length) return 'empty';
+      if (done) return 'done';
+      return t > 0 ? 'active' : 'pending';
     },
   };
 }

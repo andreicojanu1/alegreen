@@ -113,7 +113,8 @@ export interface InvariantCheck {
   trecut: boolean;
 }
 
-export type WarningCode = 'A-01' | 'A-02' | 'A-03' | 'A-04' | 'A-05';
+/** A-01…A-05 din brief; A-06 = diferență negativă față de lunile deja raportate (sesiuni lunare). */
+export type WarningCode = 'A-01' | 'A-02' | 'A-03' | 'A-04' | 'A-05' | 'A-06';
 
 export interface AllocationWarning {
   cod: WarningCode;

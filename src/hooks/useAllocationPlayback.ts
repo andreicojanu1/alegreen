@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { AllocationResult } from '../engine/types';
+import type { MonthlyResult } from '../engine/monthly';
 import { buildTimeline, viewAt, type PlaybackView, type TimelineStep } from '../lib/allocationTimeline';
 
 export const SPEEDS = [0.5, 1, 2, 4] as const;
@@ -22,8 +22,9 @@ export interface Playback {
 }
 
 /** Redarea animată a unei rulări. Cu prefers-reduced-motion (sau autoplay=false) pornește direct de la rezultat. */
-export function useAllocationPlayback(result: AllocationResult, autoplay: boolean): Playback {
-  const steps = useMemo(() => buildTimeline(result), [result]);
+export function useAllocationPlayback(result: MonthlyResult, autoplay: boolean): Playback {
+  const timeline = useMemo(() => buildTimeline(result), [result]);
+  const steps = timeline.steps;
   const animate = autoplay && !prefersReducedMotion();
   const [t, setT] = useState(animate ? 0 : steps.length);
   const [playing, setPlaying] = useState(animate);
@@ -49,7 +50,7 @@ export function useAllocationPlayback(result: AllocationResult, autoplay: boolea
     return () => cancelAnimationFrame(raf);
   }, [playing, speed, steps.length]);
 
-  const view = useMemo(() => viewAt(steps, t), [steps, t]);
+  const view = useMemo(() => viewAt(timeline, t), [timeline, t]);
   return {
     view,
     steps,

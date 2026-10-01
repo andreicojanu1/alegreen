@@ -5,6 +5,13 @@ import Decimal from 'decimal.js';
 export const periodLabel = (r: Pick<AllocationRun, 'deLa' | 'panaLa'>) =>
   `${LUNI[r.deLa.luna - 1]} ${r.deLa.an} – ${LUNI[r.panaLa.luna - 1]} ${r.panaLa.an}`;
 
+/** „Septembrie 2026" — luna alocată de sesiune. */
+export const sessionLabel = (r: Pick<AllocationRun, 'luna' | 'anObligatie'>) => `${LUNI[r.luna - 1]} ${r.anObligatie}`;
+
+/** „ianuarie–septembrie 2026" — colectarea cumulată folosită de sesiune. */
+export const cumulLabel = (r: Pick<AllocationRun, 'luna' | 'anObligatie'>) =>
+  r.luna === 1 ? `ianuarie ${r.anObligatie}` : `ianuarie–${LUNI[r.luna - 1].toLowerCase()} ${r.anObligatie}`;
+
 export const baseLabel = (r: Pick<AllocationRun, 'baza' | 'anObligatie'>) =>
   r.baza === 'declaratii_an_curent'
     ? `declarațiile aprobate din ${r.anObligatie}`

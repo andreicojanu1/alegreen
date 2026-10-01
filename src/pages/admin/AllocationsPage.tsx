@@ -16,7 +16,7 @@ import { useActions, useStore } from '../../data/store';
 import { previewResult, type RunParams } from '../../data/preview';
 import { runResult } from '../../data/useRunResult';
 import { fmtDateTime } from '../../lib/format';
-import { STATUS_META, periodLabel } from '../../lib/runLabels';
+import { STATUS_META, cumulLabel, sessionLabel } from '../../lib/runLabels';
 
 export function AllocationsPage() {
   const { state } = useStore();
@@ -121,9 +121,9 @@ export function AllocationsPage() {
             <div ref={workspaceRef} className="scroll-mt-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-xl font-bold text-gray-900">Alocare {activeRun.anObligatie}</h2>
+                  <h2 className="text-xl font-bold text-gray-900">Alocare {sessionLabel(activeRun)}</h2>
                   <RunStatusBadge status={activeRun.status} />
-                  <span className="text-sm text-gray-600">Colectare {periodLabel(activeRun)}</span>
+                  <span className="text-sm text-gray-600">Colectat cumulat {cumulLabel(activeRun)}</span>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <Link to={`/admin/alocari/${activeRun.id}`} className="inline-flex items-center gap-1.5 text-gray-800 hover:underline">

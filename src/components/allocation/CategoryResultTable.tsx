@@ -13,11 +13,11 @@ import { ReconciliationCards } from './ReconciliationCards';
 export function CategoryResultTable({ result, names, view }: { result: AllocationResult; names: Record<string, string>; view?: PlaybackView }) {
   const months = result.luni.map((m) => ({ key: monthKey(m), label: LUNI_SCURT[m.luna - 1] }));
   const t = result.totaluri;
-  const live = view && !view.done;
+  const live = !!view && !view.done;
   const sumCats = (f: (r: CategoryResult) => Decimal) => result.categorii.reduce((a, r) => a.plus(f(r)), new Decimal(0));
   // valori animate (number -> Decimal doar pentru afișare); la final, valorile exacte ale motorului
-  const propriu = (r: CategoryResult) => (live ? new Decimal(view.catPhase(r.cod, 'propriu')) : r.utilizatPropriu);
-  const pool = (r: CategoryResult) => (live ? new Decimal(view.catPhase(r.cod, 'pool')) : r.alocatPool);
+  const propriu = (r: CategoryResult) => (live ? Decimal.max(0, r.utilizatPropriu.minus(view.catPhaseRemaining(r.cod, 'propriu'))) : r.utilizatPropriu);
+  const pool = (r: CategoryResult) => (live ? Decimal.max(0, r.alocatPool.minus(view.catPhaseRemaining(r.cod, 'pool'))) : r.alocatPool);
   const total = (r: CategoryResult) => (live ? propriu(r).plus(pool(r)) : r.totalAlocat);
   const pct = (r: CategoryResult) => (live ? (r.obligatie.isZero() ? new Decimal(0) : total(r).div(r.obligatie)) : r.procentIndeplinire);
   const month = (r: CategoryResult, k: string) => (live ? new Decimal(view.catMonth(r.cod, k)) : r.alocatLuna[k]);

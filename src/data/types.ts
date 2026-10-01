@@ -26,6 +26,11 @@ export interface Client {
   cui: string;
   /** RB-16: clienții de test sunt excluși din toate calculele. */
   esteTest: boolean;
+  /** Date de identificare pentru rapoartele lunare (nu există în fișierul Excel; se completează din profilul clientului). */
+  adresa?: string;
+  regCom?: string;
+  /** MOD-06: opțional */
+  nrProducator?: string;
 }
 
 export type DeclarationStatus = 'Draft' | 'Trimisă' | 'În verificare' | 'Aprobată' | 'Respinsă';
@@ -64,10 +69,16 @@ export type CalculationBase = 'declaratii_an_curent' | 'medie_3_ani_anteriori';
 
 export type RunStatus = 'draft' | 'in_aprobare' | 'finalizata' | 'inlocuita';
 
-/** DAT-03 · rulari_alocare. Rularea păstrează o copie (snapshot) a tuturor intrărilor, deci rezultatul e reproductibil. */
+/**
+ * DAT-03 · rulari_alocare, ca SESIUNE LUNARĂ: sesiunea lunii `luna` alocă colectatul cumulat ian–luna,
+ * iar alocarea lunii = cumulat − ce s-a raportat deja (engine/monthly.ts). Rularea păstrează o copie (snapshot)
+ * a tuturor intrărilor și a lunilor deja raportate, deci rezultatul e reproductibil.
+ */
 export interface AllocationRun {
   id: string;
   anObligatie: number;
+  /** luna alocată și raportată (1–12) */
+  luna: number;
   deLa: { an: number; luna: number };
   panaLa: { an: number; luna: number };
   baza: CalculationBase;
@@ -93,9 +104,15 @@ export interface AllocationRun {
   /** Motivul ajustărilor, obligatoriu dacă există ajustări (DAT-08). */
   motivAjustari?: string;
   revizuitDe?: string;
+  /** Lunile deja raportate și ajustările din sesiunile aprobate anterior (copiate la crearea sesiunii). */
+  context: { raportatAnterior: ReportedEntry[]; ajustariAnterioare: AdjustmentRecord[] };
+  /** Valorile lunii, înghețate la aprobare — sursa rapoartelor lunare ale clienților. */
+  raportLuna?: ReportedEntry[];
   /** Respingerile aprobatorului (motiv obligatoriu); rularea revine în draft, la Revizuire. */
   respingeri?: { deAdminId: string; la: string; motiv: string }[];
 }
+
+import type { ReportedEntry } from '../engine/monthly';
 
 /** O ajustare manuală din ecranul de Revizuire (jurnal ordonat; vezi engine/adjustments.ts). */
 export interface AdjustmentRecord {

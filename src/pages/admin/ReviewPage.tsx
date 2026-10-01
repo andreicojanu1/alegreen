@@ -15,8 +15,8 @@ import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { LastRejection } from '../../components/allocation/LastRejection';
 import { AdjustmentLog } from '../../components/allocation/AdjustmentLog';
 import { WarningsPanel } from '../../components/allocation/WarningsPanel';
-import { fmtKg, fmtNum, fmtPct } from '../../lib/format';
-import { periodLabel, rateLabel } from '../../lib/runLabels';
+import { LUNI, fmtKg, fmtNum, fmtPct } from '../../lib/format';
+import { cumulLabel, rateLabel, sessionLabel } from '../../lib/runLabels';
 
 /**
  * Ecranul „Revizuire și confirmare" — pasul 2 al sesiunii de alocare. Operatorul verifică rezultatul automat,
@@ -59,13 +59,13 @@ export function ReviewPage() {
       </Link>
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">Revizuire și confirmare · Alocare {run.anObligatie}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Revizuire și confirmare · {sessionLabel(run)}</h1>
           <RunStatusBadge status={run.status} />
         </div>
         <p className="text-sm text-gray-700">
-          Colectare {periodLabel(run)} · rată {rateLabel(run.rataEfectiva)}. Verificați alocarea pe clienți și, unde e cazul, mutați
-          cantități între clienții aceleiași categorii: scădeți „Alocat final" la un client (cantitatea trece în „disponibil de
-          realocat"), apoi creșteți-l la altul. Un client nu poate depăși obligația lui.
+          Colectat cumulat {cumulLabel(run)} · rată {rateLabel(run.rataEfectiva)}. Verificați alocarea lunii și, unde e cazul, mutați
+          cantități între clienții aceleiași categorii: scădeți „Luna final" la un client (cantitatea trece în „disponibil de
+          realocat"), apoi creșteți-o la altul. Lunile deja raportate nu se modifică, iar un client nu poate depăși obligația lui.
         </p>
         <RunStepper current={stepOf(run.status, true)} inlocuita={run.status === 'inlocuita'} />
       </header>
@@ -80,7 +80,11 @@ export function ReviewPage() {
       <KpiCards
         items={[
           { label: 'Obligație totală', value: `${fmtKg(res.totaluri.obligatie)} kg` },
-          { label: 'Atribuit clienților', value: `${fmtKg(res.totaluri.totalAlocat)} kg`, hint: `${fmtPct(res.totaluri.procentIndeplinire)} din obligație` },
+          {
+            label: `Alocat în ${LUNI[run.luna - 1].toLowerCase()}`,
+            value: `${fmtKg(res.totalLuna)} kg`,
+            hint: `cumulat ${fmtKg(res.clienti.reduce((a, c) => a.plus(c.afisare.totalAlocat), new Decimal(0)))} kg · ${fmtPct(res.totaluri.procentIndeplinire)} din obligație`,
+          },
           {
             label: 'Disponibil de realocat',
             value: <span className={buffer.greaterThanOrEqualTo('0.005') ? 'text-amber-700' : ''}>{fmtKg(buffer)} kg</span>,

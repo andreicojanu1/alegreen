@@ -1,40 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { allocate } from '../engine/allocate';
-import { buildEngineInput } from '../data/engineInput';
-import { DEFAULT_CATEGORY_RULES } from '../data/categories';
-import { seedClients, seedCollected, seedDeclarationLines } from '../data/seed/excelData';
-import type { AllocationRun } from '../data/types';
+import { buildSeedRuns } from '../data/sessions';
+import { runResult } from '../data/useRunResult';
 import { buildTimeline, viewAt } from './allocationTimeline';
 
-const run: AllocationRun = {
-  id: 't', anObligatie: 2026, deLa: { an: 2026, luna: 1 }, panaLa: { an: 2026, luna: 9 }, baza: 'declaratii_an_curent',
-  rataEfectiva: '0.2167', pragMinimImplicit: '0.3', observatii: '', status: 'draft', reguli: DEFAULT_CATEGORY_RULES,
-  snapshot: { clienti: seedClients, declaratii: seedDeclarationLines, colectari: seedCollected }, creatDe: '', creatLa: '',
-};
-const res = allocate(buildEngineInput(run));
-const steps = buildTimeline(res);
+const runs = buildSeedRuns();
+const aug = runs.find((r) => r.luna === 8)!;
+const res = runResult(aug);
+const tl = buildTimeline(res);
 
-describe('cronologia animației (M4)', () => {
-  it('ordinea: lună cu lună, întâi propriu apoi pool, în ordinea pool-ului', () => {
-    expect(steps[0]).toMatchObject({ monthKey: '2026-07', faza: 'propriu', cod: '2' });
-    const iul = steps.filter((s) => s.monthKey === '2026-07');
-    const firstPool = iul.findIndex((s) => s.faza === 'pool');
-    expect(iul.slice(firstPool).every((s) => s.faza === 'pool')).toBe(true);
-    expect(iul.filter((s) => s.faza === 'pool').map((s) => s.cod)).toEqual(['2', '6', '4B']);
-    expect(steps.every((s) => s.kg > 0)).toBe(true);
+describe('cronologia animației unei sesiuni lunare (august 2026)', () => {
+  it('doar luna curentă se derulează: întâi propriu, apoi pool, în ordinea pool-ului', () => {
+    expect(tl.steps.every((s) => s.monthKey === '2026-08' && s.kg > 0)).toBe(true);
+    const firstPool = tl.steps.findIndex((s) => s.faza === 'pool');
+    expect(firstPool).toBeGreaterThan(0);
+    expect(tl.steps.slice(firstPool).every((s) => s.faza === 'pool')).toBe(true);
   });
-  it('la final, valorile animate coincid cu rezultatul motorului', () => {
-    const v = viewAt(steps, steps.length);
-    expect(v.done).toBe(true);
-    for (const c of res.categorii)
-      for (const k of Object.keys(c.alocatLuna)) expect(Math.abs(v.catMonth(c.cod, k) - c.alocatLuna[k].toNumber())).toBeLessThan(1e-6);
-    expect(Math.abs(v.totalAlocat - res.totaluri.totalAlocat.toNumber())).toBeLessThan(1e-6);
+  it('la final, totalul pe categorie și lună coincide cu rezultatul sesiunii', () => {
+    const v = viewAt(tl, tl.steps.length);
+    for (const c of res.categorii) {
+      expect(Math.abs(v.catMonth(c.cod, '2026-08') - c.alocatLuna['2026-08'].toNumber())).toBeLessThan(1e-6);
+      expect(Math.abs(v.catMonth(c.cod, '2026-07') - c.alocatLuna['2026-07'].toNumber())).toBeLessThan(1e-6);
+    }
+    expect(Math.abs(v.totalLuna - res.totalLuna.toNumber())).toBeLessThan(1e-6);
   });
-  it('stările lunilor: fără colectat = empty; în curs = active', () => {
-    const v = viewAt(steps, 1.5);
+  it('stările lunilor: iulie (raportată) = done, martie (fără alocări) = empty, august = active în timpul derulării', () => {
+    const v = viewAt(tl, 1.5);
+    expect(v.monthState('2026-07')).toBe('done');
     expect(v.monthState('2026-03')).toBe('empty');
-    expect(v.monthState('2026-07')).toBe('active');
-    expect(v.monthState('2026-08')).toBe('pending');
-    expect(viewAt(steps, 0).monthState('2026-07')).toBe('active');
+    expect(v.monthState('2026-08')).toBe('active');
+    expect(v.catMonth('4', '2026-07')).toBeGreaterThan(0);
   });
 });

@@ -4,10 +4,10 @@ import { buildEngineInput } from './engineInput';
 import type { AppState } from './store';
 import type { AllocationRun, CalculationBase } from './types';
 
+/** Parametrii unei sesiuni lunare: anul de obligație și luna alocată (colectarea e cumulată din ianuarie). */
 export interface RunParams {
   anObligatie: number;
-  deLa: { an: number; luna: number };
-  panaLa: { an: number; luna: number };
+  luna: number;
   baza: CalculationBase;
 }
 
@@ -15,13 +15,18 @@ export interface RunParams {
 export function previewRun(state: AppState, p: RunParams): AllocationRun {
   return {
     id: 'preview',
-    ...p,
+    anObligatie: p.anObligatie,
+    luna: p.luna,
+    deLa: { an: p.anObligatie, luna: 1 },
+    panaLa: { an: p.anObligatie, luna: p.luna },
+    baza: p.baza,
     rataEfectiva: state.rules.rataEfectiva,
     pragMinimImplicit: state.rules.pragMinimImplicit,
     observatii: '',
     status: 'draft',
     reguli: state.rules.reguli,
     snapshot: { clienti: state.clients, declaratii: state.declarations, colectari: state.collected },
+    context: { raportatAnterior: [], ajustariAnterioare: [] },
     creatDe: '',
     creatLa: '',
   };

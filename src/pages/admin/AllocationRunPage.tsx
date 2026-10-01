@@ -7,7 +7,7 @@ import { RunWorkspace } from '../../components/allocation/RunWorkspace';
 import { Card } from '../../components/ui/Card';
 import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
 import { fmtDateLong } from '../../lib/format';
-import { baseLabel, periodLabel, rateLabel } from '../../lib/runLabels';
+import { baseLabel, cumulLabel, rateLabel, sessionLabel } from '../../lib/runLabels';
 import { exportRunExcel } from '../../lib/exportRun';
 import { IS_ARTIFACT } from '../../lib/env';
 
@@ -40,11 +40,11 @@ export function AllocationRunPage() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Alocare {run.anObligatie}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Alocare {sessionLabel(run)}</h1>
             <RunStatusBadge status={run.status} />
           </div>
           <p className="mt-1 text-sm text-gray-700">
-            Colectare {periodLabel(run)} · rată {rateLabel(run.rataEfectiva)} · bază: {baseLabel(run)}
+            Colectat cumulat {cumulLabel(run)} · rată {rateLabel(run.rataEfectiva)} · bază: {baseLabel(run)}
           </p>
           <p className="mt-0.5 text-xs text-gray-500">
             Calculată {fmtDateLong(run.creatLa)} de {creator}

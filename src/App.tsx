@@ -8,6 +8,8 @@ import { AllocationRunPage } from './pages/admin/AllocationRunPage';
 import { ReviewPage } from './pages/admin/ReviewPage';
 import { CollectedPage } from './pages/admin/CollectedPage';
 import { ClientAllocationsPage } from './pages/client/ClientAllocationsPage';
+import { ClientReportPage } from './pages/client/ClientReportPage';
+import { ClientReportsIndex } from './pages/client/ClientReportsIndex';
 import { PlaceholderPage } from './pages/PlaceholderPage';
 import type { ReactNode } from 'react';
 
@@ -22,7 +24,6 @@ const ADMIN_PLACEHOLDERS: [string, string][] = [
 const CLIENT_PLACEHOLDERS: [string, string][] = [
   ['panou', 'Panou principal'],
   ['raportari', 'Raportări EEE'],
-  ['rapoarte', 'Rapoarte'],
   ['notificari', 'Notificări'],
   ['documente', 'Documente'],
 ];
@@ -61,6 +62,8 @@ export default function App() {
             </Route>
             <Route path="client" element={<RequireRole tip="client"><OutletShim /></RequireRole>}>
               <Route path="alocari" element={<ClientAllocationsPage />} />
+              <Route path="rapoarte" element={<ClientReportsIndex />} />
+              <Route path="rapoarte/:runId/:tip" element={<ClientReportPage />} />
               {CLIENT_PLACEHOLDERS.map(([p, t]) => (
                 <Route key={p} path={p} element={<PlaceholderPage title={t} />} />
               ))}

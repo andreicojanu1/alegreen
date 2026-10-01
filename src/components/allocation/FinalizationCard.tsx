@@ -8,7 +8,7 @@ import { Card, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { useActions, useStore } from '../../data/store';
 import type { AllocationRun } from '../../data/types';
-import { fmtDateTime } from '../../lib/format';
+import { LUNI, fmtDateTime } from '../../lib/format';
 
 /**
  * Fluxul de aprobare (neschimbat față de platformă): draft → „Trimite spre aprobare" → aprobarea unui ALT admin → finalizată.
@@ -21,7 +21,6 @@ export function FinalizationCard({ run, finalizabil, ready = true }: { run: Allo
   const confirm = useConfirm();
   const name = (id?: string) => state.admins.find((a) => a.id === id)?.nume ?? '—';
   const me = state.role.tip === 'admin' ? state.role.adminId : undefined;
-  const previous = state.runs.find((r) => r.anObligatie === run.anObligatie && r.status === 'finalizata' && r.id !== run.id);
 
   let body;
   switch (run.status) {
@@ -69,7 +68,7 @@ export function FinalizationCard({ run, finalizabil, ready = true }: { run: Allo
       break;
     case 'in_aprobare': {
       const own = me === run.creatDe;
-      const label = previous ? `Aprobă și înlocuiește alocarea din ${fmtDateTime(previous.finalizatLa!)}` : 'Aprobă și finalizează';
+      const label = `Aprobă și publică rapoartele pentru ${LUNI[run.luna - 1].toLowerCase()}`;
       body = (
         <>
           <p className="text-sm text-gray-700">
@@ -99,10 +98,9 @@ export function FinalizationCard({ run, finalizabil, ready = true }: { run: Allo
                 disabled={!finalizabil}
                 onClick={async () => {
                   const ok = await confirm({
-                    title: previous ? 'Aprobați și înlocuiți alocarea?' : 'Aprobați și finalizați rularea?',
-                    message: previous
-                      ? `Rularea finalizată din ${fmtDateTime(previous.finalizatLa!)} va fi marcată „înlocuită". Noua rulare devine imutabilă.`
-                      : 'După finalizare, rularea devine imutabilă.',
+                    title: `Aprobați alocarea pentru ${LUNI[run.luna - 1].toLowerCase()} ${run.anObligatie}?`,
+                    message:
+                      'Valorile lunii se îngheață și devin rapoartele lunare ale clienților (Situație EEE, Raport AFM). Ele nu se mai pot modifica.',
                     confirmLabel: 'Aprobă',
                   });
                   if (ok) approveRun(run.id);

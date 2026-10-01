@@ -10,7 +10,8 @@ import { Select } from '../../components/ui/Field';
 import { ProgressBar } from '../../components/client/ProgressBar';
 import { monthKey } from '../../engine/months';
 import { LUNI, fmtDate, fmtKg, fmtPct } from '../../lib/format';
-import { periodLabel } from '../../lib/runLabels';
+import { sessionLabel } from '../../lib/runLabels';
+import { MonthlyReportsList } from '../../components/client/MonthlyReportsList';
 import { IS_ARTIFACT } from '../../lib/env';
 
 const ZERO = new Decimal(0);
@@ -32,7 +33,9 @@ export function ClientAllocationsPage() {
   const [year, setYear] = useState(years[0]);
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
-  const run = finalRuns.find((r) => r.anObligatie === year);
+  // ultima sesiune lunară aprobată a anului (conține și lunile anterioare, înghețate)
+  const yearRuns = finalRuns.filter((r) => r.anObligatie === year).sort((a, b) => b.luna - a.luna);
+  const run = yearRuns[0];
   const data = useMemo(() => {
     if (!run) return null;
     const res = runResult(run);
@@ -117,7 +120,7 @@ export function ClientAllocationsPage() {
       {/* Card de sumar */}
       <Card className="px-6 py-5">
         <div className="grid grid-cols-2 gap-6 md:grid-cols-5">
-          <Stat label="An de obligație" value={String(year)} hint={`Colectare ${periodLabel(run)}`} />
+          <Stat label="An de obligație" value={String(year)} hint={`Raportat până la ${sessionLabel(run).toLowerCase()}`} />
           <Stat label="Total declarat" value={`${fmtKg(data.declarat)} kg`} hint="Baza de calcul a obligației" />
           <Stat label="Obligație anuală totală" value={`${fmtKg(data.obligatie)} kg`} hint={`${fmtPct(run.rataEfectiva)} din declarat`} />
           <Stat label="Total alocat" value={`${fmtKg(data.alocat)} kg`} hint={`Publicată ${fmtDate(run.finalizatLa!)}`} />
@@ -128,6 +131,8 @@ export function ClientAllocationsPage() {
           </div>
         </div>
       </Card>
+
+      <MonthlyReportsList runs={yearRuns} clientId={clientId} />
 
       {/* Evoluția cumulată pe luni (inspirată din logica cumulativă din captura 06) */}
       <Card>

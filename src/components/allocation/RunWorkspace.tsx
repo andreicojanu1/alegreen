@@ -5,7 +5,7 @@ import Decimal from 'decimal.js';
 import type { AllocationRun } from '../../data/types';
 import { runResult } from '../../data/useRunResult';
 import { useAllocationPlayback } from '../../hooks/useAllocationPlayback';
-import { fmtKg, fmtPct } from '../../lib/format';
+import { LUNI, fmtKg, fmtPct } from '../../lib/format';
 import { Card } from '../ui/Card';
 import { Tabs } from '../ui/Tabs';
 import { KpiCards } from './KpiCards';
@@ -37,13 +37,17 @@ export function RunWorkspace({
   const { view } = playback;
   const [tab, setTab] = useState<Tab>('clienti');
   const names = Object.fromEntries(run.reguli.map((r) => [r.cod, r.denumire]));
-  const alocat = view.done ? res.totaluri.totalAlocat : new Decimal(view.totalAlocat);
+  // cumulat raportat ian–M (lunile anterioare înghețate + luna curentă, derulată live)
+  const cumFinal = res.clienti.reduce((a, c) => a.plus(c.afisare.totalAlocat), new Decimal(0));
+  const lunaKg = view.done ? res.totalLuna : new Decimal(view.totalLuna);
+  const alocat = view.done ? cumFinal : cumFinal.minus(res.totalLuna).plus(lunaKg);
+  const lunaNume = LUNI[run.luna - 1];
   const clientCount = new Set(res.clienti.map((c) => c.clientId)).size;
 
   useEffect(() => {
     onProgress?.(alocat, view.done);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view.totalAlocat, view.done]);
+  }, [view.totalLuna, view.done]);
 
   return (
     <div className="space-y-5">
@@ -51,10 +55,11 @@ export function RunWorkspace({
       <KpiCards
         items={[
           { label: 'Obligație totală', value: `${fmtKg(res.totaluri.obligatie)} kg` },
-          { label: 'Total alocat', value: `${fmtKg(alocat)} kg` },
+          { label: `Alocat în ${lunaNume.toLowerCase()}`, value: `${fmtKg(lunaKg)} kg`, hint: 'luna raportată în această sesiune' },
           {
-            label: 'Îndeplinire globală',
-            value: fmtPct(view.done ? res.totaluri.procentIndeplinire : res.totaluri.obligatie.isZero() ? 0 : alocat.div(res.totaluri.obligatie)),
+            label: `Cumulat ianuarie–${lunaNume.toLowerCase()}`,
+            value: `${fmtKg(alocat)} kg`,
+            hint: `${fmtPct(res.totaluri.obligatie.isZero() ? 0 : alocat.div(res.totaluri.obligatie))} din obligația anuală`,
           },
           { label: 'Clienți în alocare', value: clientCount },
         ]}

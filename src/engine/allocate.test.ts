@@ -29,6 +29,8 @@ const goldenRun: AllocationRun = {
   rataEfectiva: '0.2167',
   pragMinimImplicit: '0.3',
   observatii: '',
+  luna: 8,
+  context: { raportatAnterior: [], ajustariAnterioare: [] },
   status: 'draft',
   reguli: DEFAULT_CATEGORY_RULES,
   snapshot: { clienti: seedClients, declaratii: seedDeclarationLines, colectari: seedCollected },
