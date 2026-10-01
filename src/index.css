@@ -1,0 +1,46 @@
+@import 'tailwindcss';
+@import '@fontsource/noto-sans/400.css';
+@import '@fontsource/noto-sans/500.css';
+@import '@fontsource/noto-sans/600.css';
+@import '@fontsource/noto-sans/700.css';
+@import '@fontsource/dancing-script/700.css';
+
+@theme {
+  --font-sans: 'Noto Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-logo: 'Dancing Script', cursive;
+
+  /* Paleta extrasă din capturile platformei */
+  --color-sidebar: #1f1f1f;
+  --color-sidebar-line: #2c2c2c;
+  --color-sidebar-active: #2a3342;
+  --color-sidebar-card: #2a2e35;
+  --color-page: #f4f5f7;
+  --color-ink: #111827;
+  --color-leaf: #6cc04a;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  @apply bg-page text-gray-900 antialiased;
+  font-size: 14px;
+}
+
+/* Cifre aliniate în tabele */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media print {
+  aside,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}

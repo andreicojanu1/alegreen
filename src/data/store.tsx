@@ -1,0 +1,228 @@
+import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
+import { DEFAULT_CATEGORY_RULES } from './categories';
+import { seedClients, seedCollected, seedDeclarationLines } from './seed/excelData';
+import type {
+  AdminUser,
+  AllocationRun,
+  CalculationBase,
+  CategoryRule,
+  Client,
+  CollectedEntry,
+  DeclarationLine,
+  Role,
+} from './types';
+
+/**
+ * Starea locală a prototipului (în locul backend-ului). Toate mutațiile trec prin reducer, iar componentele
+ * folosesc doar hook-urile de mai jos — la integrare, acestea se înlocuiesc cu apeluri către API.
+ * Starea se păstrează în localStorage ca iterațiile să nu piardă datele; „Resetează datele demo" o readuce la seed.
+ */
+
+export interface AppState {
+  version: number;
+  role: Role;
+  admins: AdminUser[];
+  clients: Client[];
+  declarations: DeclarationLine[];
+  collected: CollectedEntry[];
+  /** Valorile implicite propuse în formularul „Rulare nouă". */
+  defaults: { rataEfectiva: string; pragMinimImplicit: string; reguli: CategoryRule[] };
+  runs: AllocationRun[];
+  /** Bannerul „Vizibilitate pentru clienți". */
+  clientVisibility: boolean;
+}
+
+export interface NewRunParams {
+  anObligatie: number;
+  deLa: { an: number; luna: number };
+  panaLa: { an: number; luna: number };
+  baza: CalculationBase;
+  rataEfectiva: string;
+  pragMinimImplicit: string;
+  observatii: string;
+  reguli: CategoryRule[];
+}
+
+type Action =
+  | { type: 'setRole'; role: Role }
+  | { type: 'createRun'; id: string; params: NewRunParams; now: string }
+  | { type: 'submitRun'; id: string; now: string }
+  | { type: 'approveRun'; id: string; now: string }
+  | { type: 'deleteDraft'; id: string }
+  | { type: 'setVisibility'; value: boolean }
+  | { type: 'setCollected'; an: number; luna: number; categorie: string; cantitateKg: string }
+  | { type: 'reset' };
+
+const STORAGE_KEY = 'alegreen-proto-state';
+const VERSION = 1;
+
+export const ADMINS: AdminUser[] = [
+  { id: 'adm_andrei', nume: 'Andrei C', email: 'admin@alegreen.ro' },
+  { id: 'adm_ion', nume: 'Ion Popescu', email: 'ion.popescu@alegreen.ro' },
+];
+
+/** ID în stilul cuid (platforma reală folosește cuid în URL-uri). */
+export function newId(): string {
+  const rnd = () => Math.random().toString(36).slice(2, 10);
+  return `c${Date.now().toString(36)}${rnd()}${rnd()}`.slice(0, 25);
+}
+
+function seedState(): AppState {
+  // Rularea oficială de la 1 septembrie 2026 (= fișierul Excel de referință), calculată de Andrei C și aprobată de Ion Popescu.
+  const finalRun: AllocationRun = {
+    id: 'cmseed0finalizata2026iulaug',
+    anObligatie: 2026,
+    deLa: { an: 2026, luna: 7 },
+    panaLa: { an: 2026, luna: 8 },
+    baza: 'declaratii_an_curent',
+    rataEfectiva: '0.2167',
+    pragMinimImplicit: '0.3',
+    observatii: 'Alocare iulie–august, după colectarea din august (= raport_alocare_2167.xlsx)',
+    status: 'finalizata',
+    reguli: DEFAULT_CATEGORY_RULES,
+    snapshot: { clienti: seedClients, declaratii: seedDeclarationLines, colectari: seedCollected },
+    creatDe: 'adm_andrei',
+    creatLa: '2026-09-01T08:15:00',
+    trimisSpreAprobareLa: '2026-09-01T08:40:00',
+    aprobatDe: 'adm_ion',
+    finalizatLa: '2026-09-01T11:02:00',
+  };
+  return {
+    version: VERSION,
+    role: { tip: 'admin', adminId: 'adm_andrei' },
+    admins: ADMINS,
+    clients: seedClients,
+    declarations: seedDeclarationLines,
+    collected: seedCollected,
+    defaults: { rataEfectiva: '0.2167', pragMinimImplicit: '0.3', reguli: DEFAULT_CATEGORY_RULES },
+    runs: [finalRun],
+    clientVisibility: false,
+  };
+}
+
+function reducer(state: AppState, action: Action): AppState {
+  switch (action.type) {
+    case 'setRole':
+      return { ...state, role: action.role };
+    case 'createRun': {
+      if (state.role.tip !== 'admin') return state;
+      const p = action.params;
+      const run: AllocationRun = {
+        id: action.id,
+        ...p,
+        status: 'draft',
+        snapshot: { clienti: state.clients, declaratii: state.declarations, colectari: state.collected },
+        creatDe: state.role.adminId,
+        creatLa: action.now,
+      };
+      return {
+        ...state,
+        runs: [run, ...state.runs],
+        // formularul următor pornește de la parametrii ultimei rulări
+        defaults: { rataEfectiva: p.rataEfectiva, pragMinimImplicit: p.pragMinimImplicit, reguli: p.reguli },
+      };
+    }
+    case 'submitRun':
+      return {
+        ...state,
+        runs: state.runs.map((r) =>
+          r.id === action.id && r.status === 'draft' ? { ...r, status: 'in_aprobare', trimisSpreAprobareLa: action.now } : r,
+        ),
+      };
+    case 'approveRun': {
+      if (state.role.tip !== 'admin') return state;
+      const approver = state.role.adminId;
+      const run = state.runs.find((r) => r.id === action.id);
+      // O rulare devine finală doar după aprobarea unui alt admin decât cel care a calculat-o.
+      if (!run || run.status !== 'in_aprobare' || run.creatDe === approver) return state;
+      const previous = state.runs.find((r) => r.anObligatie === run.anObligatie && r.status === 'finalizata');
+      return {
+        ...state,
+        runs: state.runs.map((r) => {
+          if (r.id === run.id)
+            return { ...r, status: 'finalizata', aprobatDe: approver, finalizatLa: action.now, inlocuiesteRulareaId: previous?.id };
+          if (previous && r.id === previous.id) return { ...r, status: 'inlocuita', inlocuitaDeRulareaId: run.id };
+          return r;
+        }),
+      };
+    }
+    case 'deleteDraft':
+      return { ...state, runs: state.runs.filter((r) => !(r.id === action.id && r.status === 'draft')) };
+    case 'setVisibility':
+      return { ...state, clientVisibility: action.value };
+    case 'setCollected': {
+      const { an, luna, categorie, cantitateKg } = action;
+      const rest = state.collected.filter((c) => !(c.an === an && c.luna === luna && c.categorie === categorie));
+      return { ...state, collected: [...rest, { an, luna, categorie, cantitateKg }] };
+    }
+    case 'reset':
+      return { ...seedState(), role: state.role };
+  }
+}
+
+function loadState(): AppState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as AppState;
+      if (parsed.version === VERSION) return parsed;
+    }
+  } catch {
+    /* stocare indisponibilă: pornim de la seed */
+  }
+  return seedState();
+}
+
+const StoreContext = createContext<{ state: AppState; dispatch: (a: Action) => void } | null>(null);
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, loadState);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      /* ignorat */
+    }
+  }, [state]);
+  const value = useMemo(() => ({ state, dispatch }), [state]);
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
+}
+
+export function useStore() {
+  const ctx = useContext(StoreContext);
+  if (!ctx) throw new Error('useStore în afara StoreProvider');
+  return ctx;
+}
+
+/** API-ul de acțiuni folosit de UI (de înlocuit cu apeluri de server). */
+export function useActions() {
+  const { dispatch } = useStore();
+  return useMemo(
+    () => ({
+      setRole: (role: Role) => dispatch({ type: 'setRole', role }),
+      createRun: (params: NewRunParams) => {
+        const id = newId();
+        dispatch({ type: 'createRun', id, params, now: new Date().toISOString() });
+        return id;
+      },
+      submitRun: (id: string) => dispatch({ type: 'submitRun', id, now: new Date().toISOString() }),
+      approveRun: (id: string) => dispatch({ type: 'approveRun', id, now: new Date().toISOString() }),
+      deleteDraft: (id: string) => dispatch({ type: 'deleteDraft', id }),
+      setVisibility: (value: boolean) => dispatch({ type: 'setVisibility', value }),
+      setCollected: (an: number, luna: number, categorie: string, cantitateKg: string) =>
+        dispatch({ type: 'setCollected', an, luna, categorie, cantitateKg }),
+      reset: () => dispatch({ type: 'reset' }),
+    }),
+    [dispatch],
+  );
+}
+
+export function useAdmin(id: string | undefined) {
+  const { state } = useStore();
+  return state.admins.find((a) => a.id === id);
+}
+
+export function useCurrentAdmin() {
+  const { state } = useStore();
+  return state.role.tip === 'admin' ? state.admins.find((a) => a.id === (state.role as { adminId: string }).adminId) : undefined;
+}
