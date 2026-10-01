@@ -1,7 +1,12 @@
 # Alegreen · prototip modul „Alocări DEEE"
 
 Prototip local al modulului de alocare DEEE (admin + client), folosit ca specificație vie pentru platforma reală.
-Sursele normative sunt în [`docs/`](docs): brieful tehnic v1.0, metodologia de reguli și fișierul Excel de referință.
+
+**Pentru implementare, citiți [`docs/SPECIFICATIE_ALOCARI_DEEE.md`](docs/SPECIFICATIE_ALOCARI_DEEE.md)**: deciziile validate,
+fluxul sesiunilor lunare, modelul de date, calculul, ecranele, rapoartele lunare și testele de acceptanță.
+Agenții AI: vezi și [`AGENTS.md`](AGENTS.md).
+
+Sursele normative sunt în [`docs/`](docs): brieful tehnic v1.0, metodologia de reguli, fișierul Excel de referință și modelele de rapoarte.
 
 ## Pornire
 
