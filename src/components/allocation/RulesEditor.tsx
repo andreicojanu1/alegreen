@@ -1,149 +1,105 @@
-import Decimal from 'decimal.js';
-import { ArrowDown, ArrowUp } from 'lucide-react';
-import type { CategoryRule } from '../../data/types';
-import { effectiveRules } from '../../data/engineInput';
+import { useState } from 'react';
+import { CheckCircle2, RotateCcw, Save } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Label } from '../ui/Field';
 import { PercentInput } from './PercentInput';
+import { CategoryRulesTable } from './CategoryRulesTable';
+import { useStore, type RulesConfig } from '../../data/store';
+import { fmtDateTime } from '../../lib/format';
 
-/** Ordonează: active după ordinea pool-ului, apoi inactive. */
-export function sortRules(reguli: CategoryRule[]): CategoryRule[] {
-  return [...reguli].sort((a, b) => Number(b.activ) - Number(a.activ) || a.ordineAlocare - b.ordineAlocare);
-}
+export type RulesDraft = Pick<RulesConfig, 'rataEfectiva' | 'pragMinimImplicit' | 'reguli'>;
 
-/** Renumerotează ordinea pool-ului (10, 20, 30…) după ordinea din listă. */
-function renumber(list: CategoryRule[]): CategoryRule[] {
-  return list.map((r, i) => ({ ...r, ordineAlocare: (i + 1) * 10 }));
-}
+export const rulesEqual = (a: RulesDraft, b: RulesDraft) =>
+  a.rataEfectiva === b.rataEfectiva && a.pragMinimImplicit === b.pragMinimImplicit && JSON.stringify(a.reguli) === JSON.stringify(b.reguli);
 
 /**
- * Tabelul de reguli pe categorii: minim din categoria proprie, maxim din alte categorii, activă, ordinea pool-ului.
- * Categoriile cu prag implicit urmează pragul minim implicit (plafon = 100% − prag) până când sunt editate punctual.
+ * Tab-ul „Reguli de alocare" (M1): rata efectivă, pragul minim implicit, regulile pe categorii și ordinea pool-ului.
+ * Se salvează explicit; rulările deja calculate își păstrează propria copie a regulilor.
  */
 export function RulesEditor({
-  reguli,
-  pragMinimImplicit,
+  draft,
   onChange,
-  readOnly = false,
+  onSave,
 }: {
-  reguli: CategoryRule[];
-  pragMinimImplicit: string;
-  onChange?: (reguli: CategoryRule[]) => void;
-  readOnly?: boolean;
+  draft: RulesDraft;
+  onChange: (d: RulesDraft) => void;
+  onSave: () => void;
 }) {
-  const shown = sortRules(effectiveRules(reguli, pragMinimImplicit));
-  const active = shown.filter((r) => r.activ);
-  const update = (next: CategoryRule[]) => onChange?.(renumber(sortRules(next)));
-
-  const move = (cod: string, dir: -1 | 1) => {
-    const list = sortRules(reguli);
-    const i = list.findIndex((r) => r.cod === cod);
-    const j = i + dir;
-    if (j < 0 || j >= active.length) return;
-    [list[i], list[j]] = [list[j], list[i]];
-    onChange?.(renumber(list));
-  };
-  const patch = (cod: string, p: Partial<CategoryRule>) =>
-    update(reguli.map((r) => (r.cod === cod ? { ...r, ...p } : r)));
-  const toggleActive = (cod: string) => {
-    const r = reguli.find((x) => x.cod === cod)!;
-    // la reactivare categoria intră ultima în ordinea pool-ului
-    patch(cod, { activ: !r.activ, ordineAlocare: r.activ ? 9999 : 9998 });
-  };
+  const { state } = useStore();
+  const saved = state.rules;
+  const dirty = !rulesEqual(draft, saved);
+  const [justSaved, setJustSaved] = useState(false);
+  const author = state.admins.find((a) => a.id === saved.modificatDe)?.nume ?? saved.modificatDe;
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-50 text-left text-xs font-semibold tracking-wide text-gray-700 uppercase">
-            <th className="w-36 rounded-l-lg px-3 py-3">Ordine pool</th>
-            <th className="px-3 py-3">Categorie</th>
-            <th className="w-64 px-3 py-3 text-right">Minim din categoria proprie (%)</th>
-            <th className="w-64 px-3 py-3 text-right">Maxim din alte categorii (%)</th>
-            <th className="w-20 rounded-r-lg px-3 py-3 text-center">Activă</th>
-          </tr>
-        </thead>
-        <tbody>
-          {shown.map((r) => {
-            const idx = active.findIndex((a) => a.cod === r.cod);
-            return (
-              <tr key={r.cod} className={`border-b border-gray-100 ${r.activ ? '' : 'bg-gray-50 text-gray-400'}`}>
-                <td className="px-3 py-2">
-                  {r.activ && (
-                    <div className="flex items-center gap-3">
-                      <span className="w-4 tabular">{idx + 1}</span>
-                      {!readOnly && (
-                        <>
-                          <button
-                            type="button"
-                            aria-label={`Mută categoria ${r.cod} mai sus`}
-                            disabled={idx === 0}
-                            onClick={() => move(r.cod, -1)}
-                            className="text-gray-700 disabled:text-gray-300"
-                          >
-                            <ArrowUp size={15} />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label={`Mută categoria ${r.cod} mai jos`}
-                            disabled={idx === active.length - 1}
-                            onClick={() => move(r.cod, 1)}
-                            className="text-gray-700 disabled:text-gray-300"
-                          >
-                            <ArrowDown size={15} />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  <span className={`mr-2 font-semibold ${r.activ ? 'text-gray-900' : ''}`}>{r.cod}</span>
-                  <span className={r.activ ? 'text-gray-800' : ''}>{r.denumire}</span>
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {readOnly ? (
-                    <span className="tabular">{new Decimal(r.pragMinimPropriu).times(100).toString().replace('.', ',')}</span>
-                  ) : (
-                    <PercentInput
-                      ariaLabel={`Minim din categoria proprie, categoria ${r.cod}`}
-                      value={r.pragMinimPropriu}
-                      disabled={!r.activ}
-                      onChange={(v) => patch(r.cod, { pragMinimPropriu: v, plafonSubstitutie: r.plafonSubstitutie, folosestePragImplicit: false })}
-                      className="w-24"
-                    />
-                  )}
-                </td>
-                <td className="px-3 py-2 text-right">
-                  {readOnly ? (
-                    <span className="tabular">{new Decimal(r.plafonSubstitutie).times(100).toString().replace('.', ',')}</span>
-                  ) : (
-                    <PercentInput
-                      ariaLabel={`Maxim din alte categorii, categoria ${r.cod}`}
-                      value={r.plafonSubstitutie}
-                      disabled={!r.activ}
-                      onChange={(v) => patch(r.cod, { plafonSubstitutie: v, pragMinimPropriu: r.pragMinimPropriu, folosestePragImplicit: false })}
-                      className="w-24"
-                    />
-                  )}
-                </td>
-                <td className="px-3 py-2 text-center text-xs">
-                  {readOnly ? (
-                    r.activ ? 'Da' : 'Nu'
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => toggleActive(r.cod)}
-                      title={r.activ ? 'Dezactivează categoria' : 'Activează categoria'}
-                      className="rounded px-2 py-1 hover:bg-gray-100"
-                    >
-                      {r.activ ? 'Da' : 'Nu'}
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="space-y-6 px-6 py-6">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
+        <div>
+          <Label>Rata efectivă (% din declarat)</Label>
+          <PercentInput
+            value={draft.rataEfectiva}
+            onChange={(v) => onChange({ ...draft, rataEfectiva: v })}
+            className="h-10 w-full"
+            ariaLabel="Rata efectivă"
+          />
+          <p className="mt-1 text-xs text-green-700">65% ÷ 3 ani de referință = 21,67%</p>
+        </div>
+        <div>
+          <Label>Prag minim implicit din categoria proprie (%)</Label>
+          <PercentInput
+            value={draft.pragMinimImplicit}
+            onChange={(v) => onChange({ ...draft, pragMinimImplicit: v })}
+            className="h-10 w-full"
+            ariaLabel="Prag minim implicit"
+          />
+          <p className="mt-1 text-xs text-gray-500">Se aplică categoriilor cu pragul implicit (plafon = 100% − prag).</p>
+        </div>
+      </div>
+
+      <div>
+        <CategoryRulesTable
+          reguli={draft.reguli}
+          pragMinimImplicit={draft.pragMinimImplicit}
+          onChange={(reguli) => onChange({ ...draft, reguli })}
+        />
+        <p className="mt-3 text-xs text-gray-600">
+          Pool-ul se distribuie în ordinea de mai sus. Modificarea ordinii schimbă rezultatul doar când surplusul nu ajunge
+          pentru toate categoriile. Regulile salvate se aplică alocărilor noi; fiecare rulare păstrează copia regulilor cu care
+          a fost calculată.
+        </p>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-5">
+        <div className="text-xs text-gray-600">
+          Ultima modificare: <strong className="font-semibold text-gray-800">{fmtDateTime(saved.modificatLa)}</strong> · {author}
+          {dirty && <span className="ml-3 rounded bg-amber-50 px-2 py-0.5 text-amber-800">Modificări nesalvate</span>}
+          {!dirty && justSaved && (
+            <span className="ml-3 inline-flex items-center gap-1 rounded bg-green-50 px-2 py-0.5 text-green-800" role="status">
+              <CheckCircle2 size={13} /> Regulile au fost salvate.
+            </span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            icon={<RotateCcw size={15} />}
+            disabled={!dirty}
+            onClick={() => onChange({ rataEfectiva: saved.rataEfectiva, pragMinimImplicit: saved.pragMinimImplicit, reguli: saved.reguli })}
+          >
+            Renunță la modificări
+          </Button>
+          <Button
+            icon={<Save size={15} />}
+            disabled={!dirty}
+            onClick={() => {
+              onSave();
+              setJustSaved(true);
+            }}
+          >
+            Salvează regulile
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

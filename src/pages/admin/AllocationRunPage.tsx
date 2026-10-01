@@ -1,27 +1,18 @@
-import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, FileText } from 'lucide-react';
 import { useStore } from '../../data/store';
 import { runResult } from '../../data/useRunResult';
-import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Tabs } from '../../components/ui/Tabs';
+import { RunWorkspace } from '../../components/allocation/RunWorkspace';
+import { Card } from '../../components/ui/Card';
 import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
-import { KpiCards } from '../../components/allocation/KpiCards';
-import { FinalizationCard } from '../../components/allocation/FinalizationCard';
-import { WarningsPanel } from '../../components/allocation/WarningsPanel';
-import { CategoryResultTable } from '../../components/allocation/CategoryResultTable';
-import { ClientResultTable } from '../../components/allocation/ClientResultTable';
-import { fmtDateLong, fmtKg, fmtPct } from '../../lib/format';
+import { fmtDateLong } from '../../lib/format';
 import { baseLabel, periodLabel, rateLabel } from '../../lib/runLabels';
 import { exportRunExcel } from '../../lib/exportRun';
-
-type Tab = 'categorii' | 'clienti';
 
 export function AllocationRunPage() {
   const { runId } = useParams();
   const { state } = useStore();
-  const [tab, setTab] = useState<Tab>('categorii');
   const run = state.runs.find((r) => r.id === runId);
 
   if (!run) {
@@ -38,7 +29,6 @@ export function AllocationRunPage() {
   const res = runResult(run);
   const names = Object.fromEntries(run.reguli.map((r) => [r.cod, r.denumire]));
   const creator = state.admins.find((a) => a.id === run.creatDe)?.nume ?? run.creatDe;
-  const clientCount = new Set(res.clienti.map((c) => c.clientId)).size;
 
   return (
     <div className="space-y-5">
@@ -70,38 +60,7 @@ export function AllocationRunPage() {
         </div>
       </header>
 
-      <KpiCards
-        items={[
-          { label: 'Obligație totală', value: `${fmtKg(res.totaluri.obligatie)} kg` },
-          { label: 'Total alocat', value: `${fmtKg(res.totaluri.totalAlocat)} kg` },
-          { label: 'Îndeplinire globală', value: fmtPct(res.totaluri.procentIndeplinire) },
-          { label: 'Clienți în alocare', value: clientCount },
-        ]}
-      />
-
-      <div className="no-print">
-        <FinalizationCard run={run} finalizabil={res.finalizabil} />
-      </div>
-
-      <WarningsPanel warnings={res.avertizari} invariants={res.invarianti} />
-
-      <Card>
-        <Tabs
-          tabs={[
-            { id: 'categorii', label: 'Rezultat pe categorii' },
-            { id: 'clienti', label: 'Rezultat pe clienți' },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
-        {tab === 'categorii' ? (
-          <div className="pt-2">
-            <CategoryResultTable result={res} names={names} />
-          </div>
-        ) : (
-          <ClientResultTable result={res} clients={run.snapshot.clienti} names={names} />
-        )}
-      </Card>
+      <RunWorkspace run={run} autoplay={false} />
     </div>
   );
 }

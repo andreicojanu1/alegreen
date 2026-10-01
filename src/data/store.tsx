@@ -25,11 +25,19 @@ export interface AppState {
   clients: Client[];
   declarations: DeclarationLine[];
   collected: CollectedEntry[];
-  /** Valorile implicite propuse în formularul „Rulare nouă". */
-  defaults: { rataEfectiva: string; pragMinimImplicit: string; reguli: CategoryRule[] };
+  /** Regulile de alocare active (M1): se salvează explicit și se copiază în fiecare rulare nouă. */
+  rules: RulesConfig;
   runs: AllocationRun[];
   /** Bannerul „Vizibilitate pentru clienți". */
   clientVisibility: boolean;
+}
+
+export interface RulesConfig {
+  rataEfectiva: string;
+  pragMinimImplicit: string;
+  reguli: CategoryRule[];
+  modificatLa: string;
+  modificatDe: string; // AdminUser.id
 }
 
 export interface NewRunParams {
@@ -51,10 +59,11 @@ type Action =
   | { type: 'deleteDraft'; id: string }
   | { type: 'setVisibility'; value: boolean }
   | { type: 'setCollected'; an: number; luna: number; categorie: string; cantitateKg: string }
+  | { type: 'saveRules'; rules: Omit<RulesConfig, 'modificatLa' | 'modificatDe'>; now: string }
   | { type: 'reset' };
 
 const STORAGE_KEY = 'alegreen-proto-state';
-const VERSION = 1;
+const VERSION = 2;
 
 export const ADMINS: AdminUser[] = [
   { id: 'adm_andrei', nume: 'Andrei C', email: 'admin@alegreen.ro' },
@@ -94,7 +103,13 @@ function seedState(): AppState {
     clients: seedClients,
     declarations: seedDeclarationLines,
     collected: seedCollected,
-    defaults: { rataEfectiva: '0.2167', pragMinimImplicit: '0.3', reguli: DEFAULT_CATEGORY_RULES },
+    rules: {
+      rataEfectiva: '0.2167',
+      pragMinimImplicit: '0.3',
+      reguli: DEFAULT_CATEGORY_RULES,
+      modificatLa: '2026-09-01T08:10:00',
+      modificatDe: 'adm_andrei',
+    },
     runs: [finalRun],
     clientVisibility: false,
   };
@@ -115,12 +130,7 @@ function reducer(state: AppState, action: Action): AppState {
         creatDe: state.role.adminId,
         creatLa: action.now,
       };
-      return {
-        ...state,
-        runs: [run, ...state.runs],
-        // formularul următor pornește de la parametrii ultimei rulări
-        defaults: { rataEfectiva: p.rataEfectiva, pragMinimImplicit: p.pragMinimImplicit, reguli: p.reguli },
-      };
+      return { ...state, runs: [run, ...state.runs] };
     }
     case 'submitRun':
       return {
@@ -155,6 +165,9 @@ function reducer(state: AppState, action: Action): AppState {
       const rest = state.collected.filter((c) => !(c.an === an && c.luna === luna && c.categorie === categorie));
       return { ...state, collected: [...rest, { an, luna, categorie, cantitateKg }] };
     }
+    case 'saveRules':
+      if (state.role.tip !== 'admin') return state;
+      return { ...state, rules: { ...action.rules, modificatLa: action.now, modificatDe: state.role.adminId } };
     case 'reset':
       return { ...seedState(), role: state.role };
   }
@@ -211,6 +224,8 @@ export function useActions() {
       setVisibility: (value: boolean) => dispatch({ type: 'setVisibility', value }),
       setCollected: (an: number, luna: number, categorie: string, cantitateKg: string) =>
         dispatch({ type: 'setCollected', an, luna, categorie, cantitateKg }),
+      saveRules: (rules: Omit<RulesConfig, 'modificatLa' | 'modificatDe'>) =>
+        dispatch({ type: 'saveRules', rules, now: new Date().toISOString() }),
       reset: () => dispatch({ type: 'reset' }),
     }),
     [dispatch],

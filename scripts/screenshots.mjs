@@ -1,4 +1,5 @@
 // Capturi de ecran ale prototipului (necesită `npm run dev` pornit). Rulare: node scripts/screenshots.mjs [baseUrl]
+// În mediul cloud: PW_CHROMIUM=/opt/pw-browsers/chromium-1194/chrome-linux/chrome node scripts/screenshots.mjs
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
@@ -13,53 +14,45 @@ page.on('console', (m) => m.type() === 'error' && console.error('CONSOLE', m.tex
 page.on('dialog', (d) => d.accept());
 
 const shot = async (name, opts = {}) => {
-  await page.waitForTimeout(400);
-  await page.screenshot({ path: `${out}/${name}.png`, ...opts });
+  await page.waitForTimeout(opts.wait ?? 400);
+  await page.screenshot({ path: `${out}/${name}.png`, ...opts, wait: undefined });
   console.log('✓', name);
 };
 
 await page.goto(base);
 await page.evaluate(() => localStorage.clear());
 await page.goto(`${base}/admin/alocari`);
-await shot('05_rulare_noua');
-await page.mouse.wheel(0, 380);
-await shot('04_reguli_istoric');
+await shot('p2_01_alocari_disponibilitate');
 
-// calculează o rulare ca în captura dev (Ianuarie–Septembrie 2026)
-await page.getByRole('button', { name: 'Calculează (draft)' }).click();
-await page.waitForURL(/alocari\/c/);
-await shot('03_header_avertizari');
-await page.getByRole('tab', { name: 'Rezultat pe categorii' }).scrollIntoViewIfNeeded();
-await page.mouse.wheel(0, 900);
-await shot('02_rezultat_categorii');
-await page.getByRole('tab', { name: 'Rezultat pe clienți' }).click();
-await page.getByRole('tab', { name: 'Rezultat pe clienți' }).scrollIntoViewIfNeeded();
-await page.mouse.wheel(0, 300);
-await shot('01_rezultat_clienti');
-await shot('01b_rezultat_clienti_full', { fullPage: true });
+// M1 — reguli de alocare
+await page.getByRole('tab', { name: 'Reguli de alocare' }).click();
+await page.getByLabel('Mută categoria 4B mai sus').click();
+await shot('p2_02_reguli_nesalvate', { fullPage: true });
+await page.getByRole('button', { name: 'Renunță la modificări' }).click();
+await page.getByLabel('Prag minim implicit').fill('30');
+await page.getByRole('tab', { name: 'Alocări' }).click();
 
-// flux de aprobare: trimite, comută pe Ion Popescu, aprobă
-await page.mouse.wheel(0, -5000);
-await page.getByRole('button', { name: 'Trimite spre aprobare' }).click();
-await shot('07_in_aprobare_acelasi_admin');
-await page.getByLabel('Perspectivă').selectOption('admin:adm_ion');
-await page.waitForTimeout(200);
-await shot('08_in_aprobare_alt_admin');
-await page.getByRole('button', { name: /Aprobă și înlocuiește/ }).click();
-await shot('09_finalizata');
+// M3 — alocare nouă
+await page.getByRole('button', { name: 'Alocare nouă' }).click();
+await page.waitForTimeout(300);
+await page.getByText('Reguli active').scrollIntoViewIfNeeded();
+await shot('p2_03_panou_alocare_noua');
+await page.getByRole('button', { name: 'Pornește alocarea' }).click();
 
-// vizibilitate + perspectivă client
-await page.goto(`${base}/admin/alocari`);
-await page.getByRole('button', { name: 'Publică pentru clienți' }).click();
-await page.mouse.wheel(0, 1200);
-await shot('10_istoric_dupa_aprobare');
-await page.getByLabel('Perspectivă').selectOption('client:cl_933930');
-await page.waitForURL(/client\/alocari/);
-await shot('11_client_beko', { fullPage: true });
-await page.getByText('Echipamente de mari dimensiuni').first().click();
-await shot('12_client_beko_extins', { fullPage: true });
-
-await page.getByLabel('Perspectivă').selectOption('admin:adm_andrei');
-await page.goto(`${base}/admin/cantitati-colectate`);
-await shot('13_cantitati_colectate');
+// M4 — animație: capturi intermediare
+await page.waitForTimeout(1800);
+await shot('p2_04_live_iulie', { wait: 0 });
+await page.getByRole('button', { name: 'Pauză' }).click();
+await page.getByText('Rezultat pe clienți').scrollIntoViewIfNeeded();
+await page.mouse.wheel(0, 200);
+await shot('p2_05_live_pauza_tabel');
+await page.getByRole('button', { name: 'Continuă' }).click();
+await page.getByRole('button', { name: 'Sari la final' }).click();
+await shot('p2_06_final_tabel');
+await page.getByRole('switch').click();
+await shot('p2_07_final_grupat');
+await page.mouse.wheel(0, 2400);
+await shot('p2_08_avertizari_finalizare');
+await page.mouse.wheel(0, -10000);
+await shot('p2_09_kpi_dupa_alocare');
 await browser.close();

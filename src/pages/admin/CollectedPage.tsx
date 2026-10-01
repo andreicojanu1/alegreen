@@ -15,7 +15,7 @@ export function CollectedPage() {
   const { state } = useStore();
   const { setCollected } = useActions();
   const [an, setAn] = useState(2026);
-  const cats = [...state.defaults.reguli].sort((a, b) => byDisplayOrder(a.cod, b.cod));
+  const cats = [...state.rules.reguli].sort((a, b) => byDisplayOrder(a.cod, b.cod));
   const get = (cod: string, luna: number) =>
     new Decimal(state.collected.find((c) => c.an === an && c.luna === luna && c.categorie === cod)?.cantitateKg ?? 0);
 
