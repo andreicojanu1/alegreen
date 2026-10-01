@@ -88,6 +88,22 @@ export interface AllocationRun {
   finalizatLa?: string;
   inlocuiesteRulareaId?: string;
   inlocuitaDeRulareaId?: string;
+  /** Ajustările manuale făcute la revizuire (doar în draft); devin imutabile la trimiterea spre aprobare. */
+  ajustari?: AdjustmentRecord[];
+  /** Motivul ajustărilor, obligatoriu dacă există ajustări (DAT-08). */
+  motivAjustari?: string;
+  revizuitDe?: string;
+}
+
+/** O ajustare manuală din ecranul de Revizuire (jurnal ordonat; vezi engine/adjustments.ts). */
+export interface AdjustmentRecord {
+  id: string;
+  tip: 'retragere' | 'atribuire';
+  clientId: string;
+  categorie: string;
+  kg: string;
+  autorId: string;
+  la: string; // ISO
 }
 
 export type Role = { tip: 'admin'; adminId: string } | { tip: 'client'; clientId: string };

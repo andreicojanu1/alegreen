@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Label, Select } from '../ui/Field';
 import { CategoryRulesTable } from './CategoryRulesTable';
 import { PeriodPicker, periodInvalid } from './PeriodPicker';
-import { useStore } from '../../data/store';
+import { useActions, useStore } from '../../data/store';
 import type { RunParams } from '../../data/preview';
 import type { CalculationBase } from '../../data/types';
 import { fmtDateTime } from '../../lib/format';
@@ -21,15 +21,22 @@ export function NewAllocationPanel({
   onCancel,
   onConfirm,
   onEditRules,
+  onOpenSession,
 }: {
   initial: RunParams;
   rulesDirty: boolean;
   onCancel: () => void;
   onConfirm: (p: RunParams) => void;
   onEditRules: () => void;
+  /** deschide sesiunea existentă pentru anul ales */
+  onOpenSession: (runId: string) => void;
 }) {
   const { state } = useStore();
+  const { deleteDraft } = useActions();
   const [p, setP] = useState<RunParams>(initial);
+  // O rulare = o sesiune unică: cel mult o sesiune deschisă (draft sau în aprobare) pe an de obligație.
+  const openSession = state.runs.find((r) => r.anObligatie === p.anObligatie && (r.status === 'draft' || r.status === 'in_aprobare'));
+  const openAuthor = state.admins.find((a) => a.id === openSession?.creatDe)?.nume;
   const rules = state.rules;
   const author = state.admins.find((a) => a.id === rules.modificatDe)?.nume;
 
@@ -77,11 +84,32 @@ export function NewAllocationPanel({
           <CategoryRulesTable reguli={rules.reguli} pragMinimImplicit={rules.pragMinimImplicit} readOnly />
         </div>
 
+        {openSession && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <TriangleAlert size={16} className="text-amber-600" />
+            <span className="flex-1">
+              Există deja o sesiune de alocare deschisă pentru {p.anObligatie} ({openSession.status === 'draft' ? 'draft' : 'în aprobare'},
+              calculată {fmtDateTime(openSession.creatLa)} de {openAuthor}). Se poate lucra într-o singură sesiune pe an.
+              {openSession.status === 'in_aprobare' && ' Așteptați aprobarea ei înainte de o alocare nouă.'}
+            </span>
+            <Button variant="secondary" onClick={() => onOpenSession(openSession.id)}>
+              Continuă sesiunea
+            </Button>
+            {openSession.status === 'draft' && (
+              <Button
+                variant="secondary"
+                onClick={() => confirm('Ștergeți draftul existent (inclusiv ajustările lui) și porniți o sesiune nouă?') && deleteDraft(openSession.id)}
+              >
+                Renunță la ea
+              </Button>
+            )}
+          </div>
+        )}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onCancel}>
             Anulează
           </Button>
-          <Button icon={<Play size={16} />} disabled={periodInvalid(p)} onClick={() => onConfirm(p)}>
+          <Button icon={<Play size={16} />} disabled={periodInvalid(p) || !!openSession} onClick={() => onConfirm(p)}>
             Pornește alocarea
           </Button>
         </div>

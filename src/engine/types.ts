@@ -90,6 +90,8 @@ export interface ClientResult {
   totalAlocat: Decimal;
   procentIndeplinire: Decimal;
   alocatLuna: MonthMap;
+  /** Setat doar după ajustări manuale: totalul calculat inițial de motor. */
+  totalInitial?: Decimal;
   /** Valori pentru afișare, rotunjite la 2 zecimale, cu reziduul atribuit clientului cu cota cea mai mare (§7). */
   afisare: { totalAlocat: Decimal; alocatLuna: MonthMap };
 }

@@ -97,6 +97,10 @@ export function AllocationsPage() {
               rulesDirty={rulesDirty}
               onCancel={() => setPanelOpen(false)}
               onEditRules={() => setParam('tab', 'reguli')}
+              onOpenSession={(id) => {
+                setPanelOpen(false);
+                setParam('rulare', id);
+              }}
               onConfirm={(p) => {
                 const id = createRun({
                   ...p,

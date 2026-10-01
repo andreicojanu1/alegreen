@@ -40,9 +40,15 @@ export function ClientAllocationTable({
   const months = month ? allMonths.filter((m) => m.key === month) : allMonths;
   const done = view.done;
 
-  // valoare afișată pentru (rând, lună): exactă la final, interpolată în timpul animației
+  // valoare afișată pentru (rând, lună): exactă la final, interpolată în timpul animației.
+  // Ponderea rândului în luna categoriei vine din rezultatul final (ține cont și de ajustările manuale).
+  const catById = useMemo(() => new Map(result.categorii.map((c) => [c.cod, c])), [result]);
+  const share = (r: ClientResult, k: string) => {
+    const catMonth = catById.get(r.categorie)?.alocatLuna[k];
+    return !catMonth || catMonth.isZero() ? 0 : r.alocatLuna[k].div(catMonth).toNumber();
+  };
   const cell = (r: ClientResult, k: string): Decimal | number =>
-    done ? r.afisare.alocatLuna[k] : view.catMonth(r.categorie, k) * r.cotaCategorie.toNumber();
+    done ? r.afisare.alocatLuna[k] : view.catMonth(r.categorie, k) * share(r, k);
   const rowTotal = (r: ClientResult): Decimal | number =>
     done ? r.afisare.totalAlocat : nsum(allMonths.map((m) => cell(r, m.key) as number));
   const sumOf = (rows: ClientResult[], f: (r: ClientResult) => Decimal | number) =>

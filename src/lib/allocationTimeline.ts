@@ -35,6 +35,8 @@ export interface PlaybackView {
   done: boolean;
   /** kg alocate până acum pentru (categorie, lună) */
   catMonth: (cod: string, key: string) => number;
+  /** kg alocate până acum pe categorie, pe fază (colectat propriu / din pool) */
+  catPhase: (cod: string, faza: 'propriu' | 'pool') => number;
   monthState: (key: string) => MonthState;
   current?: TimelineStep;
   totalAlocat: number;
@@ -43,6 +45,7 @@ export interface PlaybackView {
 export function viewAt(steps: TimelineStep[], t: number): PlaybackView {
   const done = t >= steps.length;
   const acc = new Map<string, number>();
+  const phase = new Map<string, number>();
   const monthsWithSteps = new Set(steps.map((s) => s.monthKey));
   const lastIdxOfMonth = new Map<string, number>();
   const firstIdxOfMonth = new Map<string, number>();
@@ -59,6 +62,7 @@ export function viewAt(steps: TimelineStep[], t: number): PlaybackView {
     const k = `${s.cod}|${s.monthKey}`;
     const v = s.kg * frac;
     acc.set(k, (acc.get(k) ?? 0) + v);
+    phase.set(`${s.cod}|${s.faza}`, (phase.get(`${s.cod}|${s.faza}`) ?? 0) + v);
     total += v;
   }
   const current = done ? undefined : steps[Math.min(whole, steps.length - 1)];
@@ -67,6 +71,7 @@ export function viewAt(steps: TimelineStep[], t: number): PlaybackView {
     current,
     totalAlocat: total,
     catMonth: (cod, key) => acc.get(`${cod}|${key}`) ?? 0,
+    catPhase: (cod, faza) => phase.get(`${cod}|${faza}`) ?? 0,
     monthState: (key) => {
       if (!monthsWithSteps.has(key)) return 'empty';
       if (done || t >= lastIdxOfMonth.get(key)! + 1) return 'done';

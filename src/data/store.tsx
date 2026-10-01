@@ -3,6 +3,7 @@ import { DEFAULT_CATEGORY_RULES } from './categories';
 import { seedClients, seedCollected, seedDeclarationLines } from './seed/excelData';
 import type {
   AdminUser,
+  AdjustmentRecord,
   AllocationRun,
   CalculationBase,
   CategoryRule,
@@ -54,7 +55,10 @@ export interface NewRunParams {
 type Action =
   | { type: 'setRole'; role: Role }
   | { type: 'createRun'; id: string; params: NewRunParams; now: string }
-  | { type: 'submitRun'; id: string; now: string }
+  | { type: 'submitRun'; id: string; now: string; motiv: string }
+  | { type: 'addAdjustments'; runId: string; items: AdjustmentRecord[] }
+  | { type: 'undoAdjustment'; runId: string }
+  | { type: 'clearAdjustments'; runId: string }
   | { type: 'approveRun'; id: string; now: string }
   | { type: 'deleteDraft'; id: string }
   | { type: 'setVisibility'; value: boolean }
@@ -63,7 +67,7 @@ type Action =
   | { type: 'reset' };
 
 const STORAGE_KEY = 'alegreen-proto-state';
-const VERSION = 2;
+const VERSION = 3;
 
 export const ADMINS: AdminUser[] = [
   { id: 'adm_andrei', nume: 'Andrei C', email: 'admin@alegreen.ro' },
@@ -136,9 +140,36 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         runs: state.runs.map((r) =>
-          r.id === action.id && r.status === 'draft' ? { ...r, status: 'in_aprobare', trimisSpreAprobareLa: action.now } : r,
+          r.id === action.id && r.status === 'draft'
+            ? {
+                ...r,
+                status: 'in_aprobare',
+                trimisSpreAprobareLa: action.now,
+                motivAjustari: action.motiv || undefined,
+                revizuitDe: state.role.tip === 'admin' ? state.role.adminId : undefined,
+              }
+            : r,
         ),
       };
+    case 'addAdjustments':
+      return {
+        ...state,
+        runs: state.runs.map((r) =>
+          r.id === action.runId && r.status === 'draft' ? { ...r, ajustari: [...(r.ajustari ?? []), ...action.items] } : r,
+        ),
+      };
+    case 'undoAdjustment':
+      return {
+        ...state,
+        runs: state.runs.map((r) => {
+          if (r.id !== action.runId || r.status !== 'draft' || !r.ajustari?.length) return r;
+          // o editare poate produce două intrări cu același „la" — se anulează împreună
+          const last = r.ajustari[r.ajustari.length - 1].la;
+          return { ...r, ajustari: r.ajustari.filter((a) => a.la !== last) };
+        }),
+      };
+    case 'clearAdjustments':
+      return { ...state, runs: state.runs.map((r) => (r.id === action.runId && r.status === 'draft' ? { ...r, ajustari: [] } : r)) };
     case 'approveRun': {
       if (state.role.tip !== 'admin') return state;
       const approver = state.role.adminId;
@@ -218,7 +249,13 @@ export function useActions() {
         dispatch({ type: 'createRun', id, params, now: new Date().toISOString() });
         return id;
       },
-      submitRun: (id: string) => dispatch({ type: 'submitRun', id, now: new Date().toISOString() }),
+      submitRun: (id: string, motiv = '') => dispatch({ type: 'submitRun', id, motiv, now: new Date().toISOString() }),
+      addAdjustments: (runId: string, items: Omit<AdjustmentRecord, 'id' | 'la' | 'autorId'>[], autorId: string) => {
+        const la = new Date().toISOString();
+        dispatch({ type: 'addAdjustments', runId, items: items.map((it) => ({ ...it, id: newId(), la, autorId })) });
+      },
+      undoAdjustment: (runId: string) => dispatch({ type: 'undoAdjustment', runId }),
+      clearAdjustments: (runId: string) => dispatch({ type: 'clearAdjustments', runId }),
       approveRun: (id: string) => dispatch({ type: 'approveRun', id, now: new Date().toISOString() }),
       deleteDraft: (id: string) => dispatch({ type: 'deleteDraft', id }),
       setVisibility: (value: boolean) => dispatch({ type: 'setVisibility', value }),

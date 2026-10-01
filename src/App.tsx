@@ -3,6 +3,7 @@ import { StoreProvider, useStore } from './data/store';
 import { AppLayout } from './components/layout/AppLayout';
 import { AllocationsPage } from './pages/admin/AllocationsPage';
 import { AllocationRunPage } from './pages/admin/AllocationRunPage';
+import { ReviewPage } from './pages/admin/ReviewPage';
 import { CollectedPage } from './pages/admin/CollectedPage';
 import { ClientAllocationsPage } from './pages/client/ClientAllocationsPage';
 import { PlaceholderPage } from './pages/PlaceholderPage';
@@ -46,6 +47,7 @@ export default function App() {
             <Route path="admin" element={<RequireRole tip="admin"><OutletShim /></RequireRole>}>
               <Route path="alocari" element={<AllocationsPage />} />
               <Route path="alocari/:runId" element={<AllocationRunPage />} />
+              <Route path="alocari/:runId/revizuire" element={<ReviewPage />} />
               <Route path="cantitati-colectate" element={<CollectedPage />} />
               {ADMIN_PLACEHOLDERS.map(([p, t]) => (
                 <Route key={p} path={p} element={<PlaceholderPage title={t} />} />

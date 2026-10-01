@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 import Decimal from 'decimal.js';
 import type { AllocationRun } from '../../data/types';
 import { runResult } from '../../data/useRunResult';
@@ -7,6 +9,7 @@ import { fmtKg, fmtPct } from '../../lib/format';
 import { Card } from '../ui/Card';
 import { Tabs } from '../ui/Tabs';
 import { KpiCards } from './KpiCards';
+import { RunStepper, stepOf } from './RunStepper';
 import { PlaybackBar } from './PlaybackBar';
 import { FinalizationCard } from './FinalizationCard';
 import { WarningsPanel } from './WarningsPanel';
@@ -44,6 +47,7 @@ export function RunWorkspace({
 
   return (
     <div className="space-y-5">
+      <RunStepper current={stepOf(run.status)} inlocuita={run.status === 'inlocuita'} />
       <KpiCards
         items={[
           { label: 'Obligație totală', value: `${fmtKg(res.totaluri.obligatie)} kg` },
@@ -56,6 +60,20 @@ export function RunWorkspace({
         ]}
       />
       <PlaybackBar playback={playback} result={res} />
+      {run.status === 'draft' && view.done && (
+        <div className="no-print flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-gray-900/10 bg-white px-5 py-4">
+          <div className="text-sm text-gray-700">
+            <span className="font-semibold text-gray-900">Alocarea automată s-a încheiat.</span> Verificați rezultatul și treceți
+            la revizuire și confirmare.
+          </div>
+          <Link
+            to={`/admin/alocari/${run.id}/revizuire`}
+            className="inline-flex h-12 items-center gap-2 rounded-lg bg-ink px-6 text-base font-semibold text-white hover:bg-gray-800"
+          >
+            Revizuiește și confirmă <ArrowRight size={18} />
+          </Link>
+        </div>
+      )}
       <Card>
         <Tabs
           tabs={[
@@ -69,13 +87,13 @@ export function RunWorkspace({
           <ClientAllocationTable result={res} clients={run.snapshot.clienti} names={names} view={view} />
         ) : (
           <div className="px-4 pt-2">
-            <CategoryResultTable result={res} names={names} />
+            <CategoryResultTable result={res} names={names} view={view} />
           </div>
         )}
       </Card>
       <WarningsPanel warnings={res.avertizari} invariants={res.invarianti} />
       <div className="no-print">
-        <FinalizationCard run={run} finalizabil={res.finalizabil} />
+        <FinalizationCard run={run} finalizabil={res.finalizabil} ready={view.done} />
       </div>
     </div>
   );
