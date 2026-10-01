@@ -24,7 +24,9 @@ Capturi de ecran: cu serverul pornit, `node scripts/screenshots.mjs` (în mediul
 | --- | --- |
 | `src/engine/` | **Motorul de alocare**, funcție pură (`allocate.ts`), după pseudocodul din brief §6.2. Aritmetică zecimală `decimal.js`, fără float; rotunjire doar la afișare (`rounding.ts`). Testele golden: `allocate.test.ts`. |
 | `src/data/` | Stratul de date de înlocuit cu API-ul real: tipuri (≈ brief §4), seed extras din Excel, store local (reducer + localStorage), construirea intrării motorului dintr-o rulare. |
-| `src/components/allocation/` | Componentele modulului admin: `RulesEditor`, `NewRunForm`, `RunHistoryTable`, `FinalizationCard`, `WarningsPanel`, `CategoryResultTable`, `ClientResultTable`, `ReconciliationCards`, `KpiCards`, `VisibilityBanner`. |
+| `src/components/allocation/` | Componentele modulului admin: `AllocationTabs`, `RulesEditor` (tab-ul de reguli) + `CategoryRulesTable`, `AvailabilitySection` cu `AvailabilityDonut` și `CategoryLegend`, `NewAllocationPanel`, `RunWorkspace`, `PlaybackBar`, `ClientAllocationTable` cu `MonthProgressCell` și `AnnualProgressBar`, `CategoryResultTable`, `WarningsPanel`, `FinalizationCard`, `RunHistoryTable`. |
+| `src/lib/allocationTimeline.ts`, `src/hooks/useAllocationPlayback.ts` | Animația live (M4), derivată din rezultatul final al motorului; nu atinge calculul. |
+| `src/lib/categoryStyle.ts` | Culorile (paletă validată pentru daltoniști) și iconițele fixe pe categorie. |
 | `src/pages/` | Ecranele: Alocări DEEE (listă + rulare nouă), detaliul rulării, Cantități colectate, Client → Alocări EEE. |
 
 O rulare păstrează o copie (snapshot) a regulilor, declarațiilor și cantităților colectate cu care a fost calculată;
