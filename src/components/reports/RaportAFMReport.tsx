@@ -19,6 +19,7 @@ export function RaportAFMReport({ run, client }: { run: AllocationRun; client: C
         ['Reg. com.:', client.regCom ?? '—'],
         ['Nr. înregistrare producător:', client.nrProducator ?? '—'],
         ['Luna raportare:', lunaRaport(run)],
+        ['ID sesiune alocare:', run.codSesiune],
       ]}
     >
       <table className="w-full border-collapse">

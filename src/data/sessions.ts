@@ -22,6 +22,10 @@ export function sessionContext(runs: AllocationRun[], an: number, luna: number):
   };
 }
 
+/** ID-ul sesiunii: ALOC-2026-09-01; contorul pe lună nu scade niciodată (unic și după ștergeri sau respingeri). */
+export const sessionCode = (an: number, luna: number, nr: number) =>
+  `ALOC-${an}-${String(luna).padStart(2, '0')}-${String(nr).padStart(2, '0')}`;
+
 export const iso = (an: number, luna: number, zi: number, ora: string) => `${an}-${String(luna).padStart(2, '0')}-${String(zi).padStart(2, '0')}T${ora}:00`;
 
 /** Seed: sesiunile lunare aprobate ianuarie–august 2026 (cele mai noi primele). */
@@ -33,6 +37,7 @@ export function buildSeedRuns(): AllocationRun[] {
   for (let luna = 1; luna <= 8; luna++) {
     const run: AllocationRun = {
       id: `cmseed2026luna${String(luna).padStart(2, '0')}`,
+      codSesiune: sessionCode(2026, luna, 1),
       anObligatie: 2026,
       luna,
       deLa: { an: 2026, luna: 1 },

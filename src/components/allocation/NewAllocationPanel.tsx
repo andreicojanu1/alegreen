@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { Play, Settings2, TriangleAlert, X } from 'lucide-react';
-import { Card } from '../ui/Card';
+import { Play, Settings2, TriangleAlert } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Label, Select } from '../ui/Field';
 import { CategoryRulesTable } from './CategoryRulesTable';
@@ -13,7 +12,7 @@ import { LUNI, fmtDateTime } from '../../lib/format';
 import { rateLabel, ratioToPctText } from '../../lib/runLabels';
 
 /**
- * Panoul „Alocare nouă" (M3): parametrii rulării (an, perioadă, bază) + regulile active, read-only.
+ * Conținutul panoului „Alocare nouă" (M3), afișat în secțiunea care se extinde (NewAllocationSection): parametrii rulării (an, perioadă, bază) + regulile active, read-only.
  * La confirmare se creează o rulare draft cu o copie a regulilor salvate.
  */
 export function NewAllocationPanel({
@@ -49,14 +48,7 @@ export function NewAllocationPanel({
   const author = state.admins.find((a) => a.id === rules.modificatDe)?.nume;
 
   return (
-    <Card className="ring-2 ring-gray-900/10">
-      <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-        <h2 className="text-lg font-semibold text-gray-900">Alocare nouă</h2>
-        <button type="button" onClick={onCancel} aria-label="Închide" className="rounded p-1 text-gray-500 hover:bg-gray-100">
-          <X size={18} />
-        </button>
-      </div>
-      <div className="space-y-6 px-6 py-5">
+    <div className="space-y-6 border-t border-gray-100 px-5 py-5">
         <div className="grid grid-cols-1 gap-x-4 gap-y-5 md:grid-cols-2 xl:grid-cols-4">
           <PeriodPicker
             value={p}
@@ -141,7 +133,6 @@ export function NewAllocationPanel({
             Pornește alocarea pentru {LUNI[p.luna - 1].toLowerCase()}
           </Button>
         </div>
-      </div>
-    </Card>
+    </div>
   );
 }

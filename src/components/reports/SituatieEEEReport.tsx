@@ -19,7 +19,7 @@ export function SituatieEEEReport({ run, client }: { run: AllocationRun; client:
         ['Adresa:', client.adresa ?? '—'],
         ['CUI:', client.cui],
         ['Reg. com.:', client.regCom ?? '—'],
-        ['Nr. / luna:', L],
+        ['Nr. / luna:', `${run.codSesiune} / ${L}`],
         ['Data generării:', run.finalizatLa ? fmtDateTime(run.finalizatLa) : '—'],
         ['Categorii declarate:', declared.length ? REPORT_CATEGORIES.filter((c) => declared.includes(c.cod)).map((c) => c.cod).join('; ') : '—'],
       ]}

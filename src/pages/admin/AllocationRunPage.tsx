@@ -3,6 +3,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { useStore } from '../../data/store';
 import { runResult } from '../../data/useRunResult';
 import { Button } from '../../components/ui/Button';
+import { SessionCode } from '../../components/allocation/SessionCode';
 import { RunWorkspace } from '../../components/allocation/RunWorkspace';
 import { Card } from '../../components/ui/Card';
 import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
@@ -41,6 +42,7 @@ export function AllocationRunPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">Alocare {sessionLabel(run)}</h1>
+            <SessionCode code={run.codSesiune} />
             <RunStatusBadge status={run.status} />
           </div>
           <p className="mt-1 text-sm text-gray-700">

@@ -1,31 +1,25 @@
 import Decimal from 'decimal.js';
-import { Plus } from 'lucide-react';
 import type { AllocationResult } from '../../engine/types';
 import type { CategoryRule } from '../../data/types';
-import type { RunParams } from '../../data/preview';
 import { fmtKg, fmtPct } from '../../lib/format';
-import { Button } from '../ui/Button';
 import { KpiCards } from './KpiCards';
 import { AvailabilityDonut, DonutInnerLegend } from './AvailabilityDonut';
 import { CategoryLegend } from './CategoryLegend';
-import { PeriodPicker } from './PeriodPicker';
+import type { ReactNode } from 'react';
 
-/** Prima secțiune a tab-ului „Alocări" (M2): cantitățile disponibile, vizual, + butonul „Alocare nouă" (M3). */
+/** Prima secțiune a tab-ului „Alocări" (M2): cantitățile disponibile, vizual; dedesubt, secțiunea „Alocare nouă" (M3). */
 export function AvailabilitySection({
   preview,
   reguli,
-  params,
-  onParamsChange,
   lastRun,
-  onNewAllocation,
+  footer,
 }: {
   preview: AllocationResult;
   reguli: CategoryRule[];
-  params: RunParams;
-  onParamsChange: (p: RunParams) => void;
   /** ultima rulare pentru anul selectat (valoarea „alocat" poate fi cea animată) */
   lastRun?: { alocat: Decimal; obligatie: Decimal; label: string };
-  onNewAllocation: () => void;
+  /** secțiunea „Alocare nouă", afișată sub grafic */
+  footer?: ReactNode;
 }) {
   const t = preview.totaluri;
   return (
@@ -34,12 +28,6 @@ export function AvailabilitySection({
         <div className="min-w-[320px] flex-1">
           <h2 className="text-lg font-semibold text-gray-900">Cantități disponibile</h2>
           <p className="text-sm text-gray-600">Colectat pe categorii în perioada selectată, față de obligația calculată cu regulile active.</p>
-        </div>
-        <div className="flex flex-wrap items-end gap-3">
-          <PeriodPicker value={params} onChange={onParamsChange} compact />
-          <Button icon={<Plus size={16} />} onClick={onNewAllocation}>
-            Alocare nouă
-          </Button>
         </div>
       </div>
 
@@ -67,6 +55,7 @@ export function AvailabilitySection({
         </div>
         <CategoryLegend preview={preview} reguli={reguli} />
       </div>
+      {footer}
     </div>
   );
 }

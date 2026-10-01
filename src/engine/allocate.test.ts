@@ -22,6 +22,7 @@ const close = (actual: Decimal, expected: number, label: string) => {
 
 const goldenRun: AllocationRun = {
   id: 'golden',
+  codSesiune: 'TEST',
   anObligatie: 2026,
   deLa: { an: 2026, luna: 7 },
   panaLa: { an: 2026, luna: 8 },

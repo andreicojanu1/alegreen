@@ -12,6 +12,7 @@ import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
 import { ReallocationPanel } from '../../components/allocation/ReallocationPanel';
 import { ReviewClientTable } from '../../components/allocation/ReviewClientTable';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
+import { SessionCode } from '../../components/allocation/SessionCode';
 import { LastRejection } from '../../components/allocation/LastRejection';
 import { AdjustmentLog } from '../../components/allocation/AdjustmentLog';
 import { WarningsPanel } from '../../components/allocation/WarningsPanel';
@@ -60,6 +61,7 @@ export function ReviewPage() {
       <header className="space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">Revizuire și confirmare · {sessionLabel(run)}</h1>
+          <SessionCode code={run.codSesiune} />
           <RunStatusBadge status={run.status} />
         </div>
         <p className="text-sm text-gray-700">

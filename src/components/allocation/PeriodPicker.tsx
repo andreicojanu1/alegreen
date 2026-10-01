@@ -41,12 +41,12 @@ export function PeriodPicker({
         </Select>
       </label>
       <label className="block">
-        <Label>{compact ? 'Colectat ianuarie –' : 'Luna alocată'}</Label>
+        <Label>{compact ? 'Grafic: colectat ianuarie –' : 'Luna alocată'}</Label>
         <Select
           value={value.luna}
           disabled={lockMonth}
           onChange={(e) => onChange({ ...value, luna: Number(e.target.value) })}
-          className={compact ? 'w-[150px]' : ''}
+          className={compact ? 'w-[200px]' : ''}
         >
           {LUNI.map((l, i) => (
             <option key={l} value={i + 1}>

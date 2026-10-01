@@ -6,9 +6,10 @@ import { Card } from '../../components/ui/Card';
 import { VisibilityBanner } from '../../components/allocation/VisibilityBanner';
 import { AllocationTabs, type AllocationTab } from '../../components/allocation/AllocationTabs';
 import { AvailabilitySection } from '../../components/allocation/AvailabilitySection';
-import { NewAllocationPanel } from '../../components/allocation/NewAllocationPanel';
+import { NewAllocationSection } from '../../components/allocation/NewAllocationSection';
 import { RunWorkspace } from '../../components/allocation/RunWorkspace';
 import { RunHistoryTable } from '../../components/allocation/RunHistoryTable';
+import { SessionCode } from '../../components/allocation/SessionCode';
 import { RunStatusBadge } from '../../components/allocation/RunStatusBadge';
 import { RulesEditor, rulesEqual, type RulesDraft } from '../../components/allocation/RulesEditor';
 import { defaultParams } from '../../components/allocation/PeriodPicker';
@@ -84,47 +85,49 @@ export function AllocationsPage() {
           <AvailabilitySection
             preview={preview}
             reguli={saved.reguli}
-            params={params}
-            onParamsChange={setParams}
             lastRun={lastRun}
-            onNewAllocation={() => setPanelOpen(true)}
+            footer={
+              <NewAllocationSection
+                params={params}
+                onParamsChange={setParams}
+                open={panelOpen}
+                onOpen={() => setPanelOpen(true)}
+                panel={{
+                  rulesDirty,
+                  onCancel: () => setPanelOpen(false),
+                  onEditRules: () => setParam('tab', 'reguli'),
+                  onOpenSession: (id) => {
+                    setPanelOpen(false);
+                    setParam('rulare', id);
+                  },
+                  onConfirm: (p) => {
+                    const id = createRun({
+                      ...p,
+                      rataEfectiva: saved.rataEfectiva,
+                      pragMinimImplicit: saved.pragMinimImplicit,
+                      observatii: '',
+                      reguli: saved.reguli,
+                    });
+                    setParams(p);
+                    setPanelOpen(false);
+                    setAutoplayId(id);
+                    setParam('rulare', id);
+                  },
+                }}
+              />
+            }
           />
         )}
       </Card>
 
       {tab === 'alocari' && (
         <>
-          {panelOpen && (
-            <NewAllocationPanel
-              initial={params}
-              rulesDirty={rulesDirty}
-              onCancel={() => setPanelOpen(false)}
-              onEditRules={() => setParam('tab', 'reguli')}
-              onOpenSession={(id) => {
-                setPanelOpen(false);
-                setParam('rulare', id);
-              }}
-              onConfirm={(p) => {
-                const id = createRun({
-                  ...p,
-                  rataEfectiva: saved.rataEfectiva,
-                  pragMinimImplicit: saved.pragMinimImplicit,
-                  observatii: '',
-                  reguli: saved.reguli,
-                });
-                setParams(p);
-                setPanelOpen(false);
-                setAutoplayId(id);
-                setParam('rulare', id);
-              }}
-            />
-          )}
-
           {activeRun && (
             <div ref={workspaceRef} className="scroll-mt-4 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <h2 className="text-xl font-bold text-gray-900">Alocare {sessionLabel(activeRun)}</h2>
+                  <SessionCode code={activeRun.codSesiune} />
                   <RunStatusBadge status={activeRun.status} />
                   <span className="text-sm text-gray-600">Colectat cumulat {cumulLabel(activeRun)}</span>
                 </div>

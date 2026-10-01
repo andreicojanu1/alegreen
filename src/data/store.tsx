@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import { DEFAULT_CATEGORY_RULES } from './categories';
-import { finalizedSessions, nextDueMonth, sessionContext, buildSeedRuns } from './sessions';
-export { finalizedSessions, nextDueMonth };
+import { finalizedSessions, nextDueMonth, sessionContext, buildSeedRuns, sessionCode } from './sessions';
+export { finalizedSessions, nextDueMonth, sessionCode };
 import { runResult } from './useRunResult';
 import { seedClients, seedCollected, seedDeclarationLines } from './seed/excelData';
 import type {
@@ -32,6 +32,8 @@ export interface AppState {
   /** Regulile de alocare active (M1): se salvează explicit și se copiază în fiecare rulare nouă. */
   rules: RulesConfig;
   runs: AllocationRun[];
+  /** Câte sesiuni s-au pornit pe fiecare lună (cheie AAAA-LL) — sursa ID-urilor unice de sesiune. */
+  contorSesiuni: Record<string, number>;
   /** Bannerul „Vizibilitate pentru clienți". */
   clientVisibility: boolean;
 }
@@ -71,7 +73,7 @@ type Action =
   | { type: 'reset' };
 
 const STORAGE_KEY = 'alegreen-proto-state';
-const VERSION = 4;
+const VERSION = 5;
 
 export const ADMINS: AdminUser[] = [
   { id: 'adm_andrei', nume: 'Andrei C', email: 'admin@alegreen.ro' },
@@ -101,6 +103,7 @@ function seedState(): AppState {
       modificatDe: 'adm_andrei',
     },
     runs,
+    contorSesiuni: Object.fromEntries(runs.map((r) => [`${r.anObligatie}-${String(r.luna).padStart(2, '0')}`, 1])),
     clientVisibility: false,
   };
 }
@@ -115,8 +118,11 @@ function reducer(state: AppState, action: Action): AppState {
       // strict în ordine: doar următoarea lună de alocat, și o singură sesiune deschisă pe an
       if (p.luna !== nextDueMonth(state.runs, p.anObligatie)) return state;
       if (state.runs.some((r) => r.anObligatie === p.anObligatie && (r.status === 'draft' || r.status === 'in_aprobare'))) return state;
+      const cheie = `${p.anObligatie}-${String(p.luna).padStart(2, '0')}`;
+      const nr = (state.contorSesiuni[cheie] ?? 0) + 1;
       const run: AllocationRun = {
         id: action.id,
+        codSesiune: sessionCode(p.anObligatie, p.luna, nr),
         ...p,
         deLa: { an: p.anObligatie, luna: 1 },
         panaLa: { an: p.anObligatie, luna: p.luna },
@@ -126,7 +132,7 @@ function reducer(state: AppState, action: Action): AppState {
         creatDe: state.role.adminId,
         creatLa: action.now,
       };
-      return { ...state, runs: [run, ...state.runs] };
+      return { ...state, runs: [run, ...state.runs], contorSesiuni: { ...state.contorSesiuni, [cheie]: nr } };
     }
     case 'submitRun':
       return {

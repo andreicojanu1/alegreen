@@ -76,6 +76,8 @@ export type RunStatus = 'draft' | 'in_aprobare' | 'finalizata' | 'inlocuita';
  */
 export interface AllocationRun {
   id: string;
+  /** ID unic, lizibil, al sesiunii de alocare: ALOC-AAAA-LL-NN (NN = a câta sesiune pornită pentru acea lună). */
+  codSesiune: string;
   anObligatie: number;
   /** luna alocată și raportată (1–12) */
   luna: number;

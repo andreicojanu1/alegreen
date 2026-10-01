@@ -15,6 +15,7 @@ export interface RunParams {
 export function previewRun(state: AppState, p: RunParams): AllocationRun {
   return {
     id: 'preview',
+    codSesiune: 'preview',
     anObligatie: p.anObligatie,
     luna: p.luna,
     deLa: { an: p.anObligatie, luna: 1 },

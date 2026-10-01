@@ -4,6 +4,7 @@ import Decimal from 'decimal.js';
 import { Eye } from 'lucide-react';
 import { Card, CardHeader } from '../ui/Card';
 import { RunStatusBadge } from './RunStatusBadge';
+import { SessionCode } from './SessionCode';
 import { useStore } from '../../data/store';
 import { runResult } from '../../data/useRunResult';
 import { fmtDateTime, fmtKg, fmtPct } from '../../lib/format';
@@ -21,7 +22,7 @@ export function RunHistoryTable({ embedded = false }: { embedded?: boolean }) {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left text-xs font-semibold tracking-wide text-gray-700 uppercase">
-              <th className="px-4 py-3">An</th>
+              <th className="px-4 py-3">ID sesiune</th>
               <th className="px-4 py-3">Luna alocată</th>
               <th className="px-4 py-3 text-right">Rată</th>
               <th className="px-4 py-3 text-right">Obligație (kg)</th>
@@ -46,8 +47,10 @@ export function RunHistoryTable({ embedded = false }: { embedded?: boolean }) {
               const cum = res.clienti.reduce((a, c) => a.plus(c.afisare.totalAlocat), new Decimal(0));
               return (
                 <tr key={r.id} className="border-t border-gray-100">
-                  <td className="px-4 py-3 font-semibold">{r.anObligatie}</td>
-                  <td className="px-4 py-3">{sessionLabel(r)}</td>
+                  <td className="px-4 py-3">
+                    <SessionCode code={r.codSesiune} size="sm" />
+                  </td>
+                  <td className="px-4 py-3 font-medium">{sessionLabel(r)}</td>
                   <td className="px-4 py-3 text-right tabular">{rateLabel(r.rataEfectiva)}</td>
                   <td className="px-4 py-3 text-right tabular">{fmtKg(res.totaluri.obligatie)}</td>
                   <td className="px-4 py-3 text-right font-semibold tabular">{fmtKg(res.totalLuna)}</td>
