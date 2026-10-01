@@ -22,7 +22,8 @@ export function AllocationsPage() {
   const { state } = useStore();
   const { createRun, saveRules } = useActions();
   const [search, setSearch] = useSearchParams();
-  const tab: AllocationTab = search.get('tab') === 'reguli' ? 'reguli' : 'alocari';
+  const tabParam = search.get('tab');
+  const tab: AllocationTab = tabParam === 'reguli' || tabParam === 'istoric' ? tabParam : 'alocari';
   const activeRunId = search.get('rulare');
   const setParam = (k: string, v: string | null) =>
     setSearch(
@@ -74,8 +75,10 @@ export function AllocationsPage() {
       <VisibilityBanner />
 
       <Card>
-        <AllocationTabs value={tab} onChange={(t) => setParam('tab', t === 'reguli' ? 'reguli' : null)} rulesDirty={rulesDirty} />
-        {tab === 'reguli' ? (
+        <AllocationTabs value={tab} onChange={(t) => setParam('tab', t === 'alocari' ? null : t)} rulesDirty={rulesDirty} />
+        {tab === 'istoric' ? (
+          <RunHistoryTable embedded />
+        ) : tab === 'reguli' ? (
           <RulesEditor draft={draft} onChange={setDraft} onSave={() => saveRules(draft)} />
         ) : (
           <AvailabilitySection
@@ -143,7 +146,6 @@ export function AllocationsPage() {
             </div>
           )}
 
-          <RunHistoryTable />
         </>
       )}
     </div>

@@ -27,9 +27,9 @@ export function RaportAFMReport({ run, client }: { run: AllocationRun; client: C
             <th className={`${thDoc} w-[26%]`}>Categorie EEE</th>
             <th className={thDoc}>Cantitate totală de EEE introdusă pe piața națională (kg)</th>
             <th className={thDoc}>Cantitate introdusă pentru care se realizează obiectivele în mod individual (kg)</th>
-            <th className={thDoc}>Cantitate introdusă pentru care se realizează obiectivele prin transfer către OTR (kg)</th>
+            <th className={thDoc}>Cantitate introdusă pentru care se realizează obiectivele prin transfer către OIREP (kg)</th>
             <th className={thDoc}>Cantitate de DEEE colectată în mod individual (kg)</th>
-            <th className={thDoc}>Cantitate de DEEE colectată de către OTR (kg)</th>
+            <th className={thDoc}>Cantitate de DEEE colectată de către OIREP (kg)</th>
           </tr>
         </thead>
         <tbody>

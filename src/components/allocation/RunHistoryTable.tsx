@@ -1,3 +1,4 @@
+import type React from 'react';
 import { Link } from 'react-router-dom';
 import Decimal from 'decimal.js';
 import { Eye } from 'lucide-react';
@@ -8,14 +9,14 @@ import { runResult } from '../../data/useRunResult';
 import { fmtDateTime, fmtKg, fmtPct } from '../../lib/format';
 import { rateLabel, sessionLabel } from '../../lib/runLabels';
 
-export function RunHistoryTable() {
+/** Istoricul sesiunilor de alocare; `embedded` = în tab-ul „Istoric rulări”, fără card propriu. */
+export function RunHistoryTable({ embedded = false }: { embedded?: boolean }) {
   const { state } = useStore();
   const runs = [...state.runs].sort((a, b) => b.anObligatie - a.anObligatie || b.luna - a.luna || b.creatLa.localeCompare(a.creatLa));
   const adminName = (id: string) => state.admins.find((a) => a.id === id)?.nume ?? id;
 
   return (
-    <Card>
-      <CardHeader title="Istoric rulări" />
+    <Wrapper embedded={embedded}>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -79,6 +80,16 @@ export function RunHistoryTable() {
           </tbody>
         </table>
       </div>
+    </Wrapper>
+  );
+}
+
+function Wrapper({ embedded, children }: { embedded: boolean; children: React.ReactNode }) {
+  if (embedded) return <div className="py-2">{children}</div>;
+  return (
+    <Card>
+      <CardHeader title="Istoric rulări" />
+      {children}
     </Card>
   );
 }

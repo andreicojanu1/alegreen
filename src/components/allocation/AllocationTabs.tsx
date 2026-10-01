@@ -1,10 +1,11 @@
-export type AllocationTab = 'alocari' | 'reguli';
+export type AllocationTab = 'alocari' | 'reguli' | 'istoric';
 
 /** Tab-urile cardului principal al paginii Alocări DEEE (M1). */
 export function AllocationTabs({ value, onChange, rulesDirty }: { value: AllocationTab; onChange: (t: AllocationTab) => void; rulesDirty: boolean }) {
   const tabs: { id: AllocationTab; label: string }[] = [
     { id: 'alocari', label: 'Alocări' },
     { id: 'reguli', label: 'Reguli de alocare' },
+    { id: 'istoric', label: 'Istoric rulări' },
   ];
   return (
     <div role="tablist" className="flex gap-1 border-b border-gray-100 px-6">

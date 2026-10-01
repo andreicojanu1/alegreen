@@ -19,8 +19,9 @@ const shot = async (name, opts = {}) => {
 await page.goto(base);
 await page.evaluate(() => localStorage.clear());
 await page.goto(`${base}/admin/alocari`);
-await page.mouse.wheel(0, 3000);
+await page.getByRole('tab', { name: 'Istoric rulări' }).click();
 await shot('p5_01_istoric_sesiuni_lunare');
+await page.getByRole('tab', { name: 'Alocări' }).click();
 
 // colectat în septembrie (grila Cantități colectate)
 await page.goto(`${base}/admin/cantitati-colectate`);
@@ -42,7 +43,8 @@ await page.getByLabel('Viteza animației').selectOption('0.5');
 await page.getByRole('tab', { name: 'Rezultat pe clienți' }).scrollIntoViewIfNeeded();
 await page.mouse.wheel(0, 200);
 await shot('p5_04_live_septembrie', { wait: 1200 });
-await page.getByRole('button', { name: 'Sari la final' }).click();
+const skip = page.getByRole('button', { name: 'Sari la final' });
+if (await skip.count()) await skip.click();
 await page.getByRole('link', { name: /Revizuiește și confirmă/ }).first().click();
 await page.waitForURL(/revizuire/);
 await page.getByRole('heading', { name: 'Alocarea pe clienți' }).scrollIntoViewIfNeeded();
